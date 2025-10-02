@@ -1,0 +1,15 @@
+{
+  "name": "蛋仔扭蛋機",
+  "short_name": "扭蛋機",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f9ca24",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
