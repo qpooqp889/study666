@@ -1,0 +1,101 @@
+/* 添加背景圖片支援 */
+body {
+    background-image: url('background.jpg'); /* 可替換為您的背景圖片 */
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    min-height: 100vh;
+}
+
+/* 中獎範圍指示器樣式 */
+.winning-area {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 60px;
+    z-index: 1;
+    
+    &::before,
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        width: 2px;
+        height: 30px;
+        background-color: rgba(220, 53, 69, 0.8); /* 調整透明度 */
+    }
+
+    &::before {
+        left: 0;
+        transform: rotate(-22.5deg);
+    }
+
+    &::after {
+        right: 0;
+        transform: rotate(22.5deg);
+    }
+}
+
+/* 響應式調整 */
+@media (max-width: 575.98px) {
+    .winning-area {
+        width: 50px;
+        height: 50px;
+        
+        &::before,
+        &::after {
+            height: 25px;
+        }
+    }
+}
+
+/* 修改紅色鍵盤指示器樣式 */
+.keyboard-indicator {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+}
+
+/* 向下指的紅色箭頭 */
+.keyboard-indicator::before {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-top: 20px solid #ff0000;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* 中獎提示樣式 */
+.prize-notification {
+    position: absolute;
+    left: 50%;
+    bottom: 100px; /* 位置在按鈕上方 */
+    transform: translateX(-50%);
+    background-color: rgba(40, 167, 69, 0.9); /* 半透明綠色背景 */
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 顯示中獎提示的樣式 */
+.prize-notification.show {
+    opacity: 1;
+    visibility: visible;
+}
+

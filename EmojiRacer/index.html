@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>Emoji 賽車學英文</title>
+  <meta name="viewport" content="width=389, user-scalable=no">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.8.6/nipplejs.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #ffe9f0;
+      font-family: 'Arial', sans-serif;
+      overflow: hidden;
+    }
+    #game {
+      width: 389px;
+      height: 844px;
+      margin: auto;
+      position: relative;
+      background: #fff9f9;
+      border: 4px solid #fca3cc;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    #billboard {
+      text-align: center;
+      background: #ffcae1;
+      padding: 10px;
+      font-size: 22px;
+      border-bottom: 2px dashed #fff;
+    }
+    #billboard .ch {
+      font-weight: bold;
+      font-size: 24px;
+    }
+    #billboard .en {
+      font-size: 18px;
+      color: #555;
+    }
+    #energy {
+      position: absolute;
+      bottom: 200px; /* 調整位置，不與搖桿重疊 */
+      width: 100%;
+      text-align: center;
+      font-size: 18px;
+    }
+    #score { /* 新增計分樣式 */
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 20px;
+      color: #333;
+    }
+    #car {
+      position: absolute;
+      left: 160px;
+      top: 600px; /* 稍微往下移，讓油桶有更多空間掉落 */
+      font-size: 48px;
+      transition: top 0.05s, left 0.05s;
+    }
+    .oil {
+      position: absolute;
+      font-size: 32px;
+      text-align: center;
+      opacity: 1;
+      transition: opacity 1s ease-out;
+    }
+    #joystickZone {
+      position: absolute;
+      bottom: 50px;
+      width: 100%;
+      height: 150px;
+    }
+    #startBtn {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ff61a6;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      font-size: 20px;
+      border-radius: 20px;
+      cursor: pointer; /* 添加滑鼠指針樣式 */
+    }
+    #gameOverScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7); /* 半透明黑色背景 */
+      display: none; /* 預設隱藏 */
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 32px;
+      text-align: center;
+      z-index: 10000; /* 確保在最上層 */
+    }
+    #gameOverScreen button {
+      background: #ff61a6;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      font-size: 24px;
+      border-radius: 20px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    #resultMsg { /* 結果訊息樣式 */
+      position:absolute;
+      top:40%;
+      left:50%;
+      transform: translate(-50%, -50%);
+      font-size: 64px;
+      font-weight: bold;
+      color: green;
+      display:none;
+      z-index:9999;
+      user-select:none;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div id="score">Score: 0</div> <!-- 計分顯示 -->
+    <div id="billboard">
+      <div class="ch">蘋果</div>
+      <div class="en">Apple</div>
+    </div>
+    <div id="resultMsg"></div> <!-- 結果訊息顯示 -->
+    <div id="energy">Energy: 🔋🔋🔋🔋🔋</div>
+    <div id="car">🚗</div>
+    <div id="joystickZone"></div>
+    <button id="startBtn" onclick="startGame()">▶️ 開始遊戲</button>
+
+    <div id="gameOverScreen"> <!-- 遊戲結束畫面 -->
+      <h2>遊戲結束！</h2>
+      <p id="finalScore">你的分數：0</p>
+      <button onclick="startGame()">重新開始</button>
+    </div>
+  </div>
+
+  <script>
+    // 取得 HTML 元素
+    const car = document.getElementById('car');
+    const billboard = document.getElementById('billboard');
+    const energyEl = document.getElementById('energy');
+    const game = document.getElementById('game');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const finalScoreEl = document.getElementById('finalScore');
+    const scoreEl = document.getElementById('score');
+
+    // 遊戲相關變數
+    const wordList = [
+      { ch: "蘋果", en: "Apple" },
+      { ch: "太陽", en: "Sun" },
+      { ch: "書", en: "Book" },
+      { ch: "狗", en: "Dog" },
+      { ch: "汽車", en: "Car" },
+      { ch: "月亮", en: "Moon" },
+      { ch: "香蕉", en: "Banana" },
+      { ch: "貓", en: "Cat" },
+      { ch: "電腦", en: "Computer" },
+      { ch: "魚", en: "Fish" }
+    ];
+
+    let currentWord;
+    let energy = 5;
+    let carX = 160;
+    let carY = 600;
+    let oilTimer, energyTimer, difficultyTimer;
+    let isPlaying = false;
+    let oils = [];
+    let score = 0;
+    let oilDropInterval = 3000; // 初始油桶生成間隔
+    let oilDropSpeed = 4; // 初始油桶掉落速度
+    const resultMsg = document.getElementById('resultMsg');
+
+    // 顯示結果訊息
+    function showResultMsg(text, color) {
+      resultMsg.textContent = text;
+      resultMsg.style.color = color;
+      resultMsg.style.display = 'block';
+      setTimeout(() => {
+        resultMsg.style.display = 'none';
+      }, 1500); // 顯示 1.5 秒
+    }
+
+    // 更新能量顯示
+    function updateEnergy() {
+      energyEl.textContent = "Energy: " + "🔋".repeat(energy);
+      if (energy <= 0) {
+        endGame();
+      }
+    }
+
+    // 更新分數顯示
+    function updateScore() {
+      scoreEl.textContent = `Score: ${score}`;
+    }
+
+    // 產生新的題目
+    function nextQuestion() {
+      currentWord = wordList[Math.floor(Math.random() * wordList.length)];
+      billboard.querySelector('.ch').textContent = currentWord.ch;
+      billboard.querySelector('.en').textContent = currentWord.en;
+    }
+
+    // 檢查碰撞 (使用 Bounding Rectangles)
+    function checkCollision(car, oil) {
+      const carRect = car.getBoundingClientRect();
+      const oilRect = oil.getBoundingClientRect();
+
+      return !(carRect.right < oilRect.left ||
+               carRect.left > oilRect.right ||
+               carRect.bottom < oilRect.top ||
+               carRect.top > oilRect.bottom);
+    }
+
+    // 開始油桶掉落
+  function startOilFall(oil, word) {
+    let y = parseFloat(oil.style.top); // 取得初始位置
+    const fall = setInterval(() => {
+        if (!isPlaying) {
+            clearInterval(fall);
+            return;
+        }
+
+        y += oilDropSpeed;
+        oil.style.top = y + 'px';
+
+        if (checkCollision(car, oil)) {
+            clearInterval(fall);
+            if (word.ch === currentWord.ch) {
+                energy = Math.min(5, energy + 1);
+                score += 10;
+                updateScore();
+                showResultMsg('答對 ✅', 'green');
+                speakText(word.en);
+
+                // 答對後，立刻移除所有油桶並產生新題目
+                oils.forEach(o => {
+                    if (o.parentNode) game.removeChild(o);
+                });
+                oils = [];
+                nextQuestion();
+                createOils(); // 產生新的油桶組
+
+            } else {
+                energy = Math.max(0, energy - 1);
+                oil.style.opacity = 0;
+                showResultMsg('答錯 ❌', 'red');
+            }
+            updateEnergy();
+            setTimeout(() => {
+                if (oil.parentNode) game.removeChild(oil);
+                oils = oils.filter(o => o !== oil);
+            }, 1000);
+            return;
+        }
+
+        if (y > 844) {
+            clearInterval(fall);
+            if (oil.parentNode) game.removeChild(oil);
+            oils = oils.filter(o => o !== oil);
+        }
+    }, 20); // 更快的更新頻率
+}
+    // 產生油桶
+   function createOils() {
+  if (oils.length >= 4) return;
+
+  const numOilsToCreate = Math.min(4 - oils.length, 4);
+  if (numOilsToCreate <= 0) return;
+
+  const correctIndex = Math.floor(Math.random() * numOilsToCreate);
+  const usedWords = new Set();
+  usedWords.add(currentWord.ch);
+
+  // 暫存要產生的油桶
+  const pendingOils = [];
+
+  for (let i = 0; i < numOilsToCreate; i++) {
+    let word;
+    if (i === correctIndex) {
+      word = currentWord;
+    } else {
+      do {
+        word = wordList[Math.floor(Math.random() * wordList.length)];
+      } while (usedWords.has(word.ch));
+      usedWords.add(word.ch);
+    }
+
+    pendingOils.push({ word }); // 暫存單字，之後再計算位置
+  }
+
+  let pairIndex = 0;
+
+ function createOilPair() {
+        if (!isPlaying || pairIndex >= 2) return; // 最多兩組
+
+        // 固定在左側
+        const baseLeft1 = Math.random() * 0 + 40;
+        const baseLeft2 = Math.random() * 100 + 250; // 在左側範圍內
+
+        // 限制座標在合理範圍內
+        const left1 = Math.max(0, Math.min(80, baseLeft1));
+        const left2 = Math.max(100, Math.min(350, baseLeft2));
+
+        const startY = Math.max(0, -50 - Math.random() * 200);
+
+        const oilData1 = pendingOils[pairIndex * 2];
+        const oilData2 = (pairIndex * 2 + 1) < pendingOils.length ? pendingOils[pairIndex * 2 + 1] : null;
+
+        // 建立第一個油桶
+        const oil1 = createSingleOil(oilData1.word, left1, startY);
+        if (oil1) oils.push(oil1); // 如果成功建立就加入陣列
+
+        // 建立第二個油桶 (如果有的話)
+        if (oilData2) {
+            const oil2 = createSingleOil(oilData2.word, left2, startY);
+            if (oil2) oils.push(oil2);
+        }
+
+        pairIndex++; // 下一組油桶
+    }
+
+  // 每 1 秒建立一組油桶
+  const oilPairTimer = setInterval(() => {
+    createOilPair();
+    if (pairIndex >= 2) clearInterval(oilPairTimer); // 建立完兩組就停止計時器
+  }, 3000);
+
+  // 建立單一油桶的函式
+  function createSingleOil(word, left, startY) {
+    const oil = document.createElement('div');
+    oil.className = 'oil';
+    oil.innerHTML = `🛢️<br>${word.en}`;
+    oil.dataset.ch = word.ch;
+    oil.dataset.en = word.en;
+    oil.style.left = left + 'px';
+    oil.style.top = startY + 'px';
+    game.appendChild(oil);
+    startOilFall(oil, word);
+    return oil;
+  }
+}
+
+    // 語音發音
+    function speakText(text) {
+      if (!('speechSynthesis' in window)) return;
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      speechSynthesis.speak(utterance);
+    }
+
+    // 增加難度
+    function increaseDifficulty() {
+      oilDropInterval = Math.max(1000, oilDropInterval - 100); // 縮短生成間隔
+      oilDropSpeed = Math.min(15, oilDropSpeed + 0.5); // 提高掉落速度，但有上限
+      console.log("Difficulty increased: interval=", oilDropInterval, " speed=", oilDropSpeed);
+      clearInterval(oilTimer);
+      oilTimer = setInterval(createOils, oilDropInterval); // 更新油桶生成計時器
+    }
+
+    // 開始遊戲
+    function startGame() {
+      if (isPlaying) return;
+      isPlaying = true;
+      energy = 5;
+      score = 0;
+      updateScore();
+      updateEnergy();
+      nextQuestion();
+      document.getElementById('startBtn').disabled = true; // 禁用開始按鈕
+      gameOverScreen.style.display = 'none'; // 隱藏遊戲結束畫面
+
+      carX = 160;
+      carY = 600;
+      car.style.left = carX + 'px';
+      car.style.top = carY + 'px';
+
+      oilDropInterval = 3000; // 重置生成間隔
+      oilDropSpeed = 4; // 重置掉落速度
+
+      oils.forEach(o => o.remove()); // 移除舊油桶
+      oils = [];
+
+      // 開始計時器
+      oilTimer = setInterval(createOils, oilDropInterval);
+      energyTimer = setInterval(() => {
+        energy--;
+        updateEnergy();
+      }, 10000);
+      difficultyTimer = setInterval(increaseDifficulty, 15000); // 每 15 秒增加難度
+    }
+
+    // 結束遊戲
+    function endGame() {
+      isPlaying = false;
+      clearInterval(oilTimer);
+      clearInterval(energyTimer);
+      clearInterval(difficultyTimer);
+      document.getElementById('startBtn').disabled = false; // 啟用開始按鈕
+      oils.forEach(o => o.remove());
+      oils = [];
+
+      // 顯示遊戲結束畫面
+      finalScoreEl.textContent = `你的分數：${score}`;
+      gameOverScreen.style.display = 'flex';
+    }
+
+    // 虛擬搖桿控制
+    const joystick = nipplejs.create({
+      zone: document.getElementById('joystickZone'),
+      mode: 'static',
+      position: { left: '50%', top: '50%' },
+      color: 'hotpink'
+    });
+
+    joystick.on('move', (evt, data) => {
+      if (!isPlaying) return;
+
+      if (data.direction) {
+        // 取得方向向量
+        let dx = data.vector.x;
+        let dy = data.vector.y;
+
+        // 移動速度倍率
+        const speed = 8;
+
+        carX += dx * speed;
+        carY -= dy * speed; // 修正顛倒問題
+
+        // 邊界限制
+        carX = Math.max(0, Math.min(320, carX));
+        carY = Math.max(0, Math.min(700, carY));
+
+        car.style.left = carX + 'px';
+        car.style.top = carY + 'px';
+      }
+    });
+  </script>
+</body>
+</html>

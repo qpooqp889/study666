@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>顏色和表情選擇器</title>
+    <style>
+        .container {
+            max-width: 1000px;
+            margin: 50px auto;
+            display: flex;
+            gap: 30px;
+        }
+
+        .left-section {
+            flex: 1;
+        }
+
+        .right-section {
+            width: 250px;
+        }
+
+        #displayBox {
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
+            border: 2px solid #333;
+            transition: background-color 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 120px;
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .option-button {
+            width: 100%;
+            height: 50px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            transition: transform 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .color-option {
+            border: none;
+        }
+
+        .emoji-option {
+            background: white;
+            font-size: 30px;
+        }
+
+        .option-button:hover {
+            transform: scale(1.1);
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        .section-title {
+            font-weight: bold;
+            margin: 10px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+            <a href="index.html" style="position:absolute;left:10px;top:10px;font-size:24px;text-decoration:none;background:#eee;padding:6px 18px;border-radius:8px;color:#222;box-shadow:0 2px 6px #ccc;">← 返回選單</a>
+   <div class="container">
+        <div class="left-section">
+            <h1>顏色和表情選擇器</h1>
+            <div id="displayBox">😊</div>
+            
+            <div class="color-section">
+                <div class="section-title">顏色選擇</div>
+                <div class="color-grid">
+                    <button class="option-button color-option" style="background-color: #FF0000"></button>
+                    <button class="option-button color-option" style="background-color: #00FF00"></button>
+                    <button class="option-button color-option" style="background-color: #0000FF"></button>
+                    <button class="option-button color-option" style="background-color: #FFFF00"></button>
+                    <button class="option-button color-option" style="background-color: #FF00FF"></button>
+                    <button class="option-button color-option" style="background-color: #00FFFF"></button>
+                    <button class="option-button color-option" style="background-color: #FFA500"></button>
+                    <button class="option-button color-option" style="background-color: #800080"></button>
+                    <button class="option-button color-option" style="background-color: #008000"></button>
+                    <button class="option-button color-option" style="background-color: #A52A2A"></button>
+                    <button class="option-button color-option" style="background-color: #808080"></button>
+                    <button class="option-button color-option" style="background-color: #000000"></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-section">
+            <div class="section-title">表情選擇</div>
+            <div class="emoji-grid">
+                <button class="option-button emoji-option">😊</button>
+                <button class="option-button emoji-option">😂</button>
+                <button class="option-button emoji-option">🥰</button>
+                <button class="option-button emoji-option">😎</button>
+                <button class="option-button emoji-option">😭</button>
+                <button class="option-button emoji-option">😡</button>
+                <button class="option-button emoji-option">🤔</button>
+                <button class="option-button emoji-option">😴</button>
+                <button class="option-button emoji-option">🤮</button>
+                <button class="option-button emoji-option">🥳</button>
+                <button class="option-button emoji-option">😱</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const displayBox = document.getElementById('displayBox');
+        let currentEmoji = '😊';
+        let currentColor = 'white';
+
+        // 顏色選擇功能
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', function() {
+                currentColor = this.style.backgroundColor;
+                displayBox.style.backgroundColor = currentColor;
+            });
+        });
+
+        // 表情選擇功能
+        document.querySelectorAll('.emoji-option').forEach(option => {
+            option.addEventListener('click', function() {
+                currentEmoji = this.textContent;
+                displayBox.textContent = currentEmoji;
+                displayBox.style.backgroundColor = currentColor;
+            });
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+
+  <meta charset="UTF-8" />
+  <title>打蚊子遊戲 🦟 - 童趣版</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      background: linear-gradient(135deg, #A7E8BD, #FDE4B7);
+      text-align: center;
+      overflow-x: hidden;
+      color: #333;
+      user-select: none;
+    }
+    #info {
+      padding: 2vh 0;
+      font-size: 6vw;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+    #info span {
+      padding: 0 10px;
+      border-radius: 10px;
+      background: rgba(255 255 255 / 0.8);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    }
+    #score { color: #1565C0; }  /* 藍色 */
+    #time { color: #2E7D32; }   /* 綠色 */
+    #coins { color: #EF6C00; }  /* 橘色 */
+
+    #gameArea {
+      position: relative;
+      width: 100vw;
+      height: 80vh;
+      background: #ffffffcc;
+      border-radius: 20px;
+      box-shadow: 0 0 15px 5px #ffd54faa;
+      margin: 0 auto 2vh;
+      overflow: hidden;
+      max-width: 600px;
+    }
+    .mosquito {
+      position: absolute;
+      font-size: 12vw;
+      line-height: 1;
+      transition: transform 0.6s, top 1.8s ease-in, opacity 0.5s;
+      cursor: pointer;
+      user-select: none;
+      filter: drop-shadow(1px 1px 1px #888);
+    }
+    .hp-bar {
+      height: 0.7vh;
+      background: #d32f2f;
+      border-radius: 3px;
+      margin-top: -6px;
+      transition: width 0.3s;
+      box-shadow: 0 0 4px #d32f2faa;
+    }
+    .dead {
+      transform: rotate(180deg);
+      top: 100%;
+      opacity: 0;
+    }
+    @media (min-width: 768px) {
+      #info {
+        font-size: 24px;
+      }
+      .mosquito {
+        font-size: 90px;
+      }
+      #gameArea {
+        max-width: 700px;
+      }
+    }
+  </style>
+</head>
+<body>
+          <a href="index.html" style="position:absolute;left:10px;top:10px;font-size:24px;text-decoration:none;background:#eee;padding:6px 18px;border-radius:8px;color:#222;box-shadow:0 2px 6px #ccc;">← 返回選單</a>
+   <div class="container">
+  <div id="info">
+    <span>分數：<span id="score">0</span></span>
+    <span>時間：<span id="time">60</span> 秒</span>
+    <span>金幣：<span id="coins">0</span></span>
+  </div>
+  <div id="gameArea"></div>
+
+  <script>
+    const gameArea = document.getElementById('gameArea');
+    const scoreEl = document.getElementById('score');
+    const timeEl = document.getElementById('time');
+    const coinsEl = document.getElementById('coins');
+
+    let score = 0;
+    let timeLeft = 60;
+    let gameInterval, spawnInterval;
+    let mosquitoId = 0;
+
+    const localCoins = Number(localStorage.getItem('mosquitoCoins') || 0);
+    coinsEl.textContent = localCoins;
+
+    function spawnMosquito() {
+      mosquitoId++;
+      const mosquito = document.createElement('div');
+      mosquito.className = 'mosquito';
+      mosquito.dataset.id = mosquitoId;
+      mosquito.textContent = '🦟';
+
+      const isAdvanced = timeLeft <= 30;
+      const hp = isAdvanced ? 2 : 1;
+      mosquito.dataset.hp = hp;
+
+      const hpBar = document.createElement('div');
+      hpBar.className = 'hp-bar';
+      hpBar.style.width = '100%';
+      mosquito.appendChild(hpBar);
+
+      const maxX = gameArea.clientWidth - 80;
+      const maxY = gameArea.clientHeight - 80;
+      const x = Math.random() * maxX;
+      const y = Math.random() * maxY;
+      mosquito.style.left = `${x}px`;
+      mosquito.style.top = `${y}px`;
+
+      mosquito.addEventListener('click', () => {
+        let currentHp = parseInt(mosquito.dataset.hp);
+        currentHp--;
+        mosquito.dataset.hp = currentHp;
+        hpBar.style.width = `${(currentHp / hp) * 100}%`;
+        if (currentHp <= 0) {
+          killMosquito(mosquito);
+        }
+      });
+
+      gameArea.appendChild(mosquito);
+
+      setTimeout(() => {
+        if (gameArea.contains(mosquito)) mosquito.remove();
+      }, 5000);
+    }
+
+    function killMosquito(mosquito) {
+      score++;
+      scoreEl.textContent = score;
+      mosquito.classList.add('dead');
+      setTimeout(() => mosquito.remove(), 1500);
+    }
+
+    function updateTimer() {
+      timeLeft--;
+      timeEl.textContent = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(gameInterval);
+        clearInterval(spawnInterval);
+        endGame();
+      }
+    }
+
+    function endGame() {
+      alert(`時間到！你獲得了 ${score} 金幣！`);
+      const current = Number(localStorage.getItem('mosquitoCoins') || 0);
+      const newCoins = current + score;
+      localStorage.setItem('mosquitoCoins', newCoins);
+      coinsEl.textContent = newCoins;
+
+      score = 0;
+      scoreEl.textContent = 0;
+      timeLeft = 60;
+      timeEl.textContent = timeLeft;
+
+      setTimeout(() => {
+        gameInterval = setInterval(updateTimer, 1000);
+        spawnInterval = setInterval(spawnMosquito, 800);
+      }, 1000);
+    }
+
+    gameInterval = setInterval(updateTimer, 1000);
+    spawnInterval = setInterval(spawnMosquito, 800);
+  </script>
+</body>
+</html>

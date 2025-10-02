@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>英文拼字遊戲</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: 'Comic Sans MS', 'DFKai-SB', sans-serif;
+      text-align: center;
+      padding: 20px;
+      margin: 0;
+      min-height: 100vh;
+      transition: background 0.5s;
+    }
+    /* 主題1：黃色藍色 */
+    .theme-yellow-blue {
+      background: linear-gradient(135deg, #f9f871 0%, #a1c4fd 100%);
+    }
+    /* 主題2：粉紅紫色 */
+    .theme-pink-purple {
+      background: linear-gradient(135deg, #ffb6b9 0%, #a18cd1 100%);
+    }
+    /* 主題3：綠色橘色 */
+    .theme-green-orange {
+      background: linear-gradient(135deg, #b2ff59 0%, #ffcc80 100%);
+    }
+    /* 主題4：藍色綠色 */
+    .theme-blue-green {
+      background: linear-gradient(135deg, #81d4fa 0%, #b2ff59 100%);
+    }
+    /* 主題5：彩虹 */
+    .theme-rainbow {
+      background: linear-gradient(120deg, #f6d365 0%, #fda085 20%, #fbc2eb 40%, #a1c4fd 60%, #c2ffd8 80%, #fdc2e6 100%);
+    }
+    /* 其餘樣式維持原本 */
+    h1 {
+      font-size: 2em;
+      color: #ff6f61;
+      text-shadow: 2px 2px 0 #fff176, 4px 4px 0 #81d4fa;
+      margin-bottom: 10px;
+    }
+
+    #shuffled {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 10px 0;
+    }
+
+    .letter-btn {
+      font-size: 28px;
+      margin: 8px;
+      padding: 14px 20px;
+      cursor: pointer;
+      min-width: 55px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #fff176 60%, #81d4fa 100%);
+      border: 2px solid #ffb74d;
+      color: #1976d2;
+      font-weight: bold;
+      box-shadow: 2px 2px 8px #ffd54f88;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .letter-btn:disabled {
+      background: #bdbdbd;
+      color: #fff;
+      opacity: 0.7;
+    }
+
+    #answer {
+      font-size: 36px;
+      margin: 20px 0;
+      min-height: 40px;
+      color: #388e3c;
+      letter-spacing: 8px;
+      font-weight: bold;
+      text-shadow: 1px 1px 0 #fffde7;
+    }
+
+    #result {
+      font-size: 26px;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #d84315;
+      text-shadow: 1px 1px 0 #fffde7;
+    }
+
+    #meaning {
+      font-size: 22px;
+      margin-bottom: 10px;
+      color: #1976d2;
+      font-weight: bold;
+      text-shadow: 1px 1px 0 #fffde7;
+    }
+
+    button {
+      margin: 5px;
+      padding: 12px 24px;
+      font-size: 18px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #ffb74d 60%, #81d4fa 100%);
+      border: 2px solid #fff176;
+      color: #1976d2;
+      font-weight: bold;
+      box-shadow: 2px 2px 8px #ffd54f88;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    button:hover {
+      background: linear-gradient(135deg, #fff176 60%, #81d4fa 100%);
+      transform: scale(1.05);
+    }
+
+    .volume-control {
+      margin: 10px 0 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+    .volume-control label {
+      font-size: 16px;
+      color: #1976d2;
+      font-weight: bold;
+    }
+    .volume-slider {
+      width: 120px;
+      accent-color: #ffb74d;
+    }
+    .theme-select {
+      margin-bottom: 10px;
+      font-size: 18px;
+      border-radius: 8px;
+      padding: 6px 12px;
+      border: 2px solid #81d4fa;
+      background: #fffde7;
+      color: #1976d2;
+      font-weight: bold;
+      box-shadow: 1px 1px 6px #ffd54f44;
+    }
+      /* 主題對比色設計 */
+    .theme-yellow-blue button,
+    .theme-yellow-blue .letter-btn {
+      background: linear-gradient(135deg, #1976d2 60%, #fff176 100%);
+      color: #fff;
+      border: 2px solid #1976d2;
+    }
+    .theme-pink-purple button,
+    .theme-pink-purple .letter-btn {
+      background: linear-gradient(135deg, #a18cd1 60%, #ffb6b9 100%);
+      color: #fff;
+      border: 2px solid #a18cd1;
+    }
+    .theme-green-orange button,
+    .theme-green-orange .letter-btn {
+      background: linear-gradient(135deg, #ff6f00 60%, #b2ff59 100%);
+      color: #fff;
+      border: 2px solid #ff6f00;
+    }
+    .theme-blue-green button,
+    .theme-blue-green .letter-btn {
+      background: linear-gradient(135deg, #00695c 60%, #81d4fa 100%);
+      color: #fff;
+      border: 2px solid #00695c;
+    }
+    .theme-rainbow button,
+    .theme-rainbow .letter-btn {
+      background: linear-gradient(135deg, #d72660 60%, #fbc2eb 100%);
+      color: #fff;
+      border: 2px solid #d72660;
+    }
+    /* 提示按鈕樣式 */
+    #hintBtn {
+      margin-top: 10px;
+      font-size: 18px;
+      padding: 10px 24px;
+    }
+    @media (max-width: 600px) {
+      .letter-btn {
+        font-size: 20px;
+        padding: 8px 12px;
+        min-width: 40px;
+      }
+
+      #answer {
+        font-size: 24px;
+      }
+
+      #result {
+        font-size: 20px;
+      }
+
+      #meaning {
+        font-size: 18px;
+      }
+
+      button {
+        font-size: 14px;
+        padding: 8px 14px;
+      }
+
+      h1 {
+        font-size: 1.5em;
+      }
+      .volume-slider {
+        width: 80px;
+      }
+      .theme-select {
+        font-size: 14px;
+        padding: 4px 8px;
+      }
+    }
+  </style>
+</head>
+        <a href="index.html" style="position:absolute;left:10px;top:10px;font-size:24px;text-decoration:none;background:#eee;padding:6px 18px;border-radius:8px;color:#222;box-shadow:0 2px 6px #ccc;">← 返回選單</a>
+   <div class="container">
+<body class="theme-yellow-blue">
+  <select id="themeSelect" class="theme-select">
+    <option value="theme-yellow-blue">黃色藍色</option>
+    <option value="theme-pink-purple">粉紅紫色</option>
+    <option value="theme-green-orange">綠色橘色</option>
+    <option value="theme-blue-green">藍色綠色</option>
+    <option value="theme-rainbow">彩虹</option>
+  </select>
+  <h1>英文拼字遊戲</h1>
+  <div id="coinDisplay" style="font-size:22px;color:#8400db;font-weight:bold;margin-bottom:10px;">
+  💰金幣：0
+</div>
+
+  <div id="meaning"></div>
+  <div id="shuffled"></div>
+  <div id="answer"></div>
+  <div>
+    <button id="resetGame" onclick="resetGame()">重玩</button>
+    <button id="nextWord" onclick="nextWord() ">下一題</button>
+    <button id="hintBtn" onclick="showHint()">提示 -50金幣</button>
+  </div>
+  <div style="margin:10px 0;">
+    <button id="replayWordBtn" style="display:none;font-size:18px;padding:8px 18px;">🔊 重新發音</button>
+    <label style="margin-left:18px;font-size:16px;color:#1976d2;font-weight:bold;">發音速度</label>
+    <input type="range" id="ttsRate" min="0.5" max="1.5" step="0.1" value="0.5" style="width:120px;vertical-align:middle;">
+    <span id="rateVal" style="font-size:15px;color:#1976d2;">0.5</span>
+  </div>
+  <!-- 發音聲音大小 -->
+  <div class="volume-control">
+    <label for="ttsVolume">發音音量</label>
+    <input type="range" id="ttsVolume" class="volume-slider" min="0" max="1" step="0.01" value="1">
+    <span id="ttsVolumeVal" style="font-size:15px;color:#1976d2;">1.00</span>
+  </div>
+
+
+
+  <!-- 音效 -->
+  <audio id="clickSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_5b24e6cbfb.mp3?filename=button-16.mp3"></audio>
+  <audio id="correctSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_64b4179b8a.mp3?filename=success-1-6297.mp3"></audio>
+  <audio id="wrongSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c75c7931e6.mp3?filename=error-126627.mp3"></audio>
+  <!-- 背景音樂 -->
+  <audio id="bgm" src="https://cdn.pixabay.com/audio/2023/03/28/audio_12b6b4e7e7.mp3" loop></audio>
+
+  <script>
+  let ttsVolume = 1.0;
+  const ttsVolumeSlider = document.getElementById("ttsVolume");
+  const ttsVolumeVal = document.getElementById("ttsVolumeVal");
+  ttsVolumeSlider.addEventListener("input", function() {
+    ttsVolume = parseFloat(this.value);
+    ttsVolumeVal.textContent = ttsVolume.toFixed(2);
+  });
+  ttsVolumeVal.textContent = ttsVolumeSlider.value; // 頁面載入時顯示初始值
+  function speak(text, rate = ttsRate) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "en-US";
+    utter.rate = rate;
+    utter.volume = ttsVolume; // 一定要加這行，且 ttsVolume 要是 0~1 的數字
+    window.speechSynthesis.speak(utter);
+  }
+  </script>
+
+  <div class="volume-control">
+    <label for="bgmVolume">背景音樂</label>
+    <input type="range" id="bgmVolume" class="volume-slider" min="0" max="1" step="0.01" value="0.5">
+    <label for="sfxVolume">音效</label>
+    <input type="range" id="sfxVolume" class="volume-slider" min="0" max="1" step="0.01" value="0.7">
+  </div>
+  <div id="result"></div>
+
+  <!-- 音效 -->
+  <audio id="clickSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_5b24e6cbfb.mp3?filename=button-16.mp3"></audio>
+  <audio id="correctSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_64b4179b8a.mp3?filename=success-1-6297.mp3"></audio>
+  <audio id="wrongSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c75c7931e6.mp3?filename=error-126627.mp3"></audio>
+  <!-- 背景音樂 -->
+  <audio id="bgm" src="https://cdn.pixabay.com/audio/2023/03/28/audio_12b6b4e7e7.mp3" loop></audio>
+
+  <script>
+function unlockSound() {
+  clickSound.play().catch(() => {});
+  correctSound.play().catch(() => {});
+  wrongSound.play().catch(() => {});
+  bgm.play().catch(() => {});
+
+  document.getElementById("startSoundBtn").style.display = "none";
+}
+
+// 主題切換
+document.getElementById("themeSelect").addEventListener("change", function() {
+  document.body.className = this.value;
+});
+
+// 題庫擴充到 50 個
+const wordList = [
+  { word: "APPLE", meaning: "蘋果" },
+  { word: "HOUSE", meaning: "房子" },
+  { word: "TRAIN", meaning: "火車" },
+  { word: "MOUSE", meaning: "老鼠" },
+  { word: "PLANE", meaning: "飛機" },
+  { word: "WATER", meaning: "水" },
+  { word: "SCHOOL", meaning: "學校" },
+  { word: "TABLE", meaning: "桌子" },
+  { word: "CHAIR", meaning: "椅子" },
+  { word: "PENCIL", meaning: "鉛筆" },
+  { word: "RULER", meaning: "尺" },
+  { word: "ERASER", meaning: "橡皮擦" },
+  { word: "BREAD", meaning: "麵包" },
+  { word: "JUICE", meaning: "果汁" },
+  { word: "CANDY", meaning: "糖果" },
+  { word: "TIGER", meaning: "老虎" },
+  { word: "LION", meaning: "獅子" },
+  { word: "MONKEY", meaning: "猴子" },
+  { word: "ZEBRA", meaning: "斑馬" },
+  { word: "FROG", meaning: "青蛙" },
+  { word: "DUCK", meaning: "鴨子" },
+  { word: "FISH", meaning: "魚" },
+  { word: "BIRD", meaning: "鳥" },
+  { word: "SNAKE", meaning: "蛇" },
+  { word: "HORSE", meaning: "馬" },
+  { word: "SHEEP", meaning: "羊" },
+  { word: "PIG", meaning: "豬" },
+  { word: "DOG", meaning: "狗" },
+  { word: "CAT", meaning: "貓" },
+  { word: "RABBIT", meaning: "兔子" },
+  { word: "SUN", meaning: "太陽" },
+  { word: "MOON", meaning: "月亮" },
+  { word: "STAR", meaning: "星星" },
+  { word: "CLOUD", meaning: "雲" },
+  { word: "RAIN", meaning: "雨" },
+  { word: "SNOW", meaning: "雪" },
+  { word: "WIND", meaning: "風" },
+  { word: "TREE", meaning: "樹" },
+  { word: "FLOWER", meaning: "花" },
+  { word: "GRASS", meaning: "草" },
+  { word: "CAR", meaning: "汽車" },
+  { word: "BUS", meaning: "公車" },
+  { word: "BIKE", meaning: "腳踏車" },
+  { word: "BOAT", meaning: "船" },
+  { word: "PLANT", meaning: "植物" },
+  { word: "BOOK", meaning: "書" },
+  { word: "BAG", meaning: "包包" },
+  { word: "SHOES", meaning: "鞋子" },
+  { word: "HAT", meaning: "帽子" },
+  { word: "DRESS", meaning: "洋裝" }
+];
+
+let currentWord = "";
+let currentMeaning = "";
+let selected = "";
+
+let isCorrect = false; // ✅ 設定狀態
+
+const clickSound = document.getElementById("clickSound");
+const correctSound = document.getElementById("correctSound");
+const wrongSound = document.getElementById("wrongSound");
+const bgm = document.getElementById("bgm");
+
+
+// 金幣邏輯
+let coins = localStorage.getItem("coins") ? parseInt(localStorage.getItem("coins")) : 100;
+updateCoinDisplay();
+
+function updateCoins(change) {
+  coins += change;
+  if (coins < 0) coins = 0; // 不讓金幣變負數
+  localStorage.setItem("coins", coins);
+  updateCoinDisplay();
+}
+
+function updateCoinDisplay() {
+  document.getElementById("coinDisplay").textContent = `💰 金幣：${coins}`;
+}
+
+
+// 音量控制
+const bgmVolume = document.getElementById("bgmVolume");
+const sfxVolume = document.getElementById("sfxVolume");
+bgm.volume = bgmVolume.value;
+clickSound.volume = sfxVolume.value;
+correctSound.volume = sfxVolume.value;
+wrongSound.volume = sfxVolume.value;
+
+bgmVolume.addEventListener("input", function() {
+  bgm.volume = this.value;
+});
+sfxVolume.addEventListener("input", function() {
+  clickSound.volume = this.value;
+  correctSound.volume = this.value;
+  wrongSound.volume = this.value;
+});
+
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
+
+let wrongCount = 0;
+
+function displayShuffled() {
+  const shuffled = shuffle(currentWord.split(''));
+  const container = document.getElementById("shuffled");
+  container.innerHTML = "";
+
+  shuffled.forEach(letter => {
+    const btn = document.createElement("button");
+    btn.textContent = letter;
+    btn.className = "letter-btn";
+    btn.onclick = () => {
+      clickSound.currentTime = 0;
+      clickSound.play();
+
+      // speakLetter(letter); // 點字母時發音
+      selected += letter;
+      document.getElementById("answer").textContent = selected;
+      btn.disabled = true;
+
+      if (selected.length === currentWord.length) {
+        checkAnswer();
+      }
+    };
+    container.appendChild(btn);
+  });
+}
+
+let ttsRate = 1.0;
+const ttsRateSlider = document.getElementById("ttsRate");
+const rateVal = document.getElementById("rateVal");
+ttsRateSlider.addEventListener("input", function() {
+  ttsRate = parseFloat(this.value);
+  rateVal.textContent = ttsRate.toFixed(2);
+});
+
+// TTS 單字發音
+function speak(text, rate = ttsRate) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "en-US";
+  utter.rate = rate;
+  utter.volume = ttsVolume; // 一定要加這行，且 ttsVolume 要是 0~1 的數字
+  window.speechSynthesis.speak(utter);
+}
+
+// 點字母發音
+function speakLetter(letter) {
+  speak(letter);
+}
+
+// 完整單字發音
+function speakWord() {
+  speak(currentWord);
+}
+
+// 重新發音按鈕
+document.getElementById("replayWordBtn").onclick = speakWord;
+
+// 修改 checkAnswer，正確時自動發音並顯示 replay 按鈕
+function checkAnswer() {
+  const result = document.getElementById("result");
+  if (selected === currentWord) {
+    result.textContent = "✅ 正確！+10💰金幣";
+    result.style.color = "green";
+    correctSound.currentTime = 0;
+  //顯示下一題按鈕
+    document.getElementById("nextWord").style.display = "inline-block";
+
+    correctSound.play();
+    document.getElementById("replayWordBtn").style.display = "inline-block";
+    speakWord(); // 正確後完整單字發音
+     if (isCorrect) return; // 如果已經答對就不再執行
+         isCorrect = true; // ✅ 設定狀態，表示已答對
+       updateCoins(+10); // ✅ 答對加金幣
+    
+document.getElementById("resetGame").style.display = "none"; // 隱藏重玩按鈕
+
+    
+  
+  } else {
+    result.textContent = "❌ 錯誤，請再試一次！";
+    result.style.color = "red";
+    wrongSound.currentTime = 0;
+    wrongSound.play();
+    document.getElementById("replayWordBtn").style.display = "none";
+    
+        updateCoins(-10); // ❌ 答錯扣金幣
+
+  }
+}
+
+// resetGame 時隱藏 replay 按鈕
+function resetGame() {
+  selected = "";
+  document.getElementById("answer").textContent = "";
+  document.getElementById("result").textContent = "";
+  document.getElementById("replayWordBtn").style.display = "none";
+      isCorrect = false; // ✅ 重置狀態
+document.getElementById("resetGame").style.display = ""; // 顯示重玩按鈕
+
+
+  
+  displayShuffled();
+}
+
+// nextWord 時也隱藏 replay 按鈕
+function nextWord() {
+  const randomIndex = Math.floor(Math.random() * wordList.length);
+  currentWord = wordList[randomIndex].word;
+  currentMeaning = wordList[randomIndex].meaning;
+  document.getElementById("meaning").textContent = `中文意思：${currentMeaning}`;
+
+  //隱藏下一題按鈕
+  document.getElementById("nextWord").style.display = "none";
+  resetGame();
+}
+
+function showHint() {
+  if (coins < 50) {
+  alert("金幣不足，無法使用提示！");
+  return;
+}
+  updateCoins(-50); // 🔍 提示扣金幣
+  document.getElementById("result").textContent = `提示：${currentWord}`;
+  document.getElementById("result").style.color = "#1976d2";
+}
+
+// 初始化
+nextWord();
+  </script>
+</body>
+</html>

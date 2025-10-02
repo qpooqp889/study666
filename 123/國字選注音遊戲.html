@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+<title> 📙 國字選注音遊戲</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #fdfaf6;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+    }
+    .char {
+      font-size: 60px;
+      margin: 20px 0;
+      color: #2c3e50;
+    }
+    .selected, .score, .timer, .coin-display {
+      font-size: 20px;
+      margin: 10px;
+    }
+    .options button, .controls button {
+      font-size: 24px;
+      margin: 5px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .options button {
+      background: #ecf0f1;
+    }
+    .options button:hover {
+      background: #bdc3c7;
+    }
+    .controls button {
+      background: #3498db;
+      color: white;
+    }
+    .controls button:disabled {
+      background: #95a5a6;
+    }
+    .message {
+      font-size: 24px;
+      margin: 10px;
+      height: 30px;
+    }
+    #startBtn {
+      background: #27ae60;
+      color: white;
+      font-size: 36px;
+      padding: 20px 60px;
+      margin: 30px 0 30px 0;
+    }
+    .options {
+      margin-bottom: 50px;
+    }
+    .controls {
+      margin-top: 50px;
+    }
+    .speed-control {
+      margin: 10px;
+      font-size: 16px;
+    }
+    .bounce {
+      display: inline-block;
+      animation: bounce 0.4s ease-in-out;
+    }
+    @keyframes bounce {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.5); }
+      100% { transform: scale(1); }
+    }
+    @media (max-width: 480px) {
+      .char { font-size: 48px; }
+      .options button, .controls button { font-size: 18px; padding: 8px 16px; }
+    }
+    .bounce {
+  animation: bounce 0.4s ease-in-out;
+}
+  </style>
+</head>
+<body>
+<div class="container">
+    <a href="index.html" style="position:absolute;left:10px;top:10px;font-size:24px;text-decoration:none;background:#eee;padding:6px 18px;border-radius:8px;color:#222;box-shadow:0 2px 6px #ccc;">← 返回選單</a>
+   <div class="container">
+    <h1>📙 國字選注音遊戲</h1>
+  <div class="score" id="scoreBoard">得分：0</div>
+  <div class="coin-display" id="coinDisplay">💰金幣：0</div>
+  <div class="timer" id="timer">⏳ 倒數：180秒</div>
+  <div style="margin-bottom: 20px;">
+    <label for="levelSelect" style="font-size:20px;">選擇年級：</label>
+    <select id="levelSelect" style="font-size:20px; padding: 4px 12px;">
+      <option value="low">低年級</option>
+      <option value="mid">中年級</option>
+      <option value="high">高年級</option>
+    </select>
+  </div>
+  <button id="startBtn" onclick="startGame()">開始遊戲</button>
+  <div class="char" id="character" style="display:none;">字</div>
+  <div class="selected" id="selected"></div>
+  <div class="options" id="options"></div>
+  <div class="controls">
+    <button onclick="checkAnswer()">檢查 / 發音</button>
+    <button id="resetId" onclick="reset()">重設</button>
+    <button id="nextBtn" onclick="nextQuestion()" >下一題</button>
+  </div>
+  <div class="speed-control">
+    發音速度：<input type="range" id="speedSlider" min="0.1" max="2" value="0.5" step="0.1"> <span id="speedValue">0.5</span>x
+  </div>
+  <div class="volume-control">
+  發音音量：<input type="range" id="volumeSlider" min="0" max="1" value="1" step="0.01">
+  <span id="volumeValue">1.00</span>
+</div>
+  <div class="message" id="message"></div>
+</div>
+
+<audio id="correctSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_8d7bcf1751.mp3" preload="auto"></audio>
+<audio id="wrongSound" src="https://cdn.pixabay.com/download/audio/2022/03/14/audio_9e06b6f1df.mp3" preload="auto"></audio>
+
+<script>
+const questionsLow = [
+  { char: "好", zhuyin: ["ㄏ", "ㄠˇ"] }, { char: "你", zhuyin: ["ㄋ", "ㄧˇ"] }, { char: "謝", zhuyin: ["ㄒ", "ㄧㄝˋ"] }, { char: "學", zhuyin: ["ㄒ", "ㄩㄝˊ"] },
+  { char: "大", zhuyin: ["ㄉ", "ㄚˋ"] }, { char: "小", zhuyin: ["ㄒ", "ㄧㄠˇ"] }, { char: "天", zhuyin: ["ㄊ", "ㄧㄢ"] }, { char: "地", zhuyin: ["ㄉ", "ㄧˋ"] },
+  { char: "人", zhuyin: ["ㄖ", "ㄣˊ"] }, { char: "口", zhuyin: ["ㄎ", "ㄡˇ"] }, { char: "日", zhuyin: ["ㄖ", "ˋ"] }, { char: "月", zhuyin: ["ㄩ", "ㄝˋ"] },
+  { char: "水", zhuyin: ["ㄕ", "ㄨㄟˇ"] }, { char: "火", zhuyin: ["ㄏ", "ㄨㄛˇ"] }, { char: "山", zhuyin: ["ㄕ", "ㄢ"] }, { char: "田", zhuyin: ["ㄊ", "ㄧㄢˊ"] },
+  { char: "木", zhuyin: ["ㄇ", "ㄨˋ"] }, { char: "牛", zhuyin: ["ㄋ", "ㄧㄡˊ"] }, { char: "羊", zhuyin: ["ㄧ", "ㄤˊ"] }, { char: "馬", zhuyin: ["ㄇ", "ㄚˇ"] },
+  { char: "魚", zhuyin: ["ㄩ", "ㄩˊ"] }, { char: "鳥", zhuyin: ["ㄋ", "ㄧㄠˇ"] }, { char: "狗", zhuyin: ["ㄍ", "ㄡˇ"] }, { char: "貓", zhuyin: ["ㄇ", "ㄠ"] },
+  { char: "手", zhuyin: ["ㄕ", "ㄡˇ"] }, { char: "足", zhuyin: ["ㄗ", "ㄨˊ"] }, { char: "耳", zhuyin: ["ㄦˇ"] }, { char: "目", zhuyin: ["ㄇ", "ㄨˋ"] },
+  { char: "鼻", zhuyin: ["ㄅ", "ㄧˊ"] }, { char: "口", zhuyin: ["ㄎ", "ㄡˇ"] }, { char: "頭", zhuyin: ["ㄊ", "ㄡˊ"] }, { char: "心", zhuyin: ["ㄒ", "ㄧㄣ"] },
+  { char: "爸", zhuyin: ["ㄅ", "ㄚˋ"] }, { char: "媽", zhuyin: ["ㄇ", "ㄚ"] }, { char: "哥", zhuyin: ["ㄍ", "ㄜ"] }, { char: "姐", zhuyin: ["ㄐ", "ㄧㄝˇ"] },
+  { char: "弟", zhuyin: ["ㄉ", "ㄧˋ"] }, { char: "妹", zhuyin: ["ㄇ", "ㄟˋ"] }, { char: "家", zhuyin: ["ㄐ", "ㄧㄚ"] }, { char: "校", zhuyin: ["ㄒ", "ㄧㄠˋ"] },
+  { char: "書", zhuyin: ["ㄕ", "ㄨ"] }, { char: "本", zhuyin: ["ㄅ", "ㄣˇ"] }, { char: "桌", zhuyin: ["ㄓ", "ㄨㄛ"] }, { char: "椅", zhuyin: ["ㄧˇ"] },
+  { char: "車", zhuyin: ["ㄔ", "ㄜ"] }, { char: "船", zhuyin: ["ㄔ", "ㄨㄢˊ"] }
+];
+const questionsMid = [
+  { char: "春", zhuyin: ["ㄔ", "ㄨㄣ"] }, { char: "夏", zhuyin: ["ㄒ", "ㄧㄚˋ"] }, { char: "秋", zhuyin: ["ㄑ", "ㄧㄡ"] }, { char: "冬", zhuyin: ["ㄉ", "ㄨㄥ"] },
+  { char: "花", zhuyin: ["ㄏ", "ㄨㄚ"] }, { char: "草", zhuyin: ["ㄘ", "ㄠˇ"] }, { char: "樹", zhuyin: ["ㄕ", "ㄨˋ"] }, { char: "葉", zhuyin: ["ㄧ", "ㄝˋ"] },
+  { char: "根", zhuyin: ["ㄍ", "ㄣ"] }, { char: "果", zhuyin: ["ㄍ", "ㄨㄛˇ"] }, { char: "菜", zhuyin: ["ㄘ", "ㄞˋ"] }, { char: "米", zhuyin: ["ㄇ", "ㄧˇ"] },
+  { char: "飯", zhuyin: ["ㄈ", "ㄢˋ"] }, { char: "湯", zhuyin: ["ㄊ", "ㄤ"] }, { char: "蛋", zhuyin: ["ㄉ", "ㄢˋ"] }, { char: "肉", zhuyin: ["ㄖ", "ㄡˋ"] },
+  { char: "糖", zhuyin: ["ㄊ", "ㄤˊ"] }, { char: "鹽", zhuyin: ["ㄧ", "ㄢˊ"] }, { char: "油", zhuyin: ["ㄧ", "ㄡˊ"] }, { char: "茶", zhuyin: ["ㄔ", "ㄚˊ"] },
+  { char: "杯", zhuyin: ["ㄅ", "ㄟ"] }, { char: "碗", zhuyin: ["ㄨ", "ㄢˇ"] }, { char: "盤", zhuyin: ["ㄆ", "ㄢˊ"] }, { char: "刀", zhuyin: ["ㄉ", "ㄠ"] },
+  { char: "叉", zhuyin: ["ㄔ", "ㄚ"] }, { char: "筷", zhuyin: ["ㄎ", "ㄨㄞˋ"] }, { char: "桌", zhuyin: ["ㄓ", "ㄨㄛ"] }, { char: "椅", zhuyin: ["ㄧˇ"] },
+  { char: "窗", zhuyin: ["ㄔ", "ㄨㄤ"] }, { char: "門", zhuyin: ["ㄇ", "ㄣˊ"] }, { char: "牆", zhuyin: ["ㄑ", "ㄧㄤˊ"] }, { char: "地", zhuyin: ["ㄉ", "ㄧˋ"] },
+  { char: "床", zhuyin: ["ㄔ", "ㄨㄤˊ"] }, { char: "燈", zhuyin: ["ㄉ", "ㄥ"] }, { char: "書", zhuyin: ["ㄕ", "ㄨ"] }, { char: "本", zhuyin: ["ㄅ", "ㄣˇ"] },
+  { char: "筆", zhuyin: ["ㄅ", "ㄧˇ"] }, { char: "紙", zhuyin: ["ㄓ", "ㄧˇ"] }, { char: "畫", zhuyin: ["ㄏ", "ㄨㄚˋ"] }, { char: "圖", zhuyin: ["ㄊ", "ㄨˊ"] },
+  { char: "球", zhuyin: ["ㄑ", "ㄧㄡˊ"] }, { char: "跳", zhuyin: ["ㄊ", "ㄧㄠˋ"] }, { char: "跑", zhuyin: ["ㄆ", "ㄠˇ"] }, { char: "游", zhuyin: ["ㄧ", "ㄡˊ"] },
+  { char: "唱", zhuyin: ["ㄔ", "ㄤˋ"] }, { char: "歌", zhuyin: ["ㄍ", "ㄜ"] }, { char: "舞", zhuyin: ["ㄨˇ"] }, { char: "樂", zhuyin: ["ㄩ", "ㄝˋ"] }
+];
+const questionsHigh = [
+  { char: "愛", zhuyin: ["ㄞˋ"] }, { char: "恨", zhuyin: ["ㄏ", "ㄣˋ"] }, { char: "情", zhuyin: ["ㄑ", "ㄧㄥˊ"] }, { char: "義", zhuyin: ["ㄧˋ"] },
+  { char: "勇", zhuyin: ["ㄩㄥˇ"] }, { char: "智", zhuyin: ["ㄓ", "ㄧˋ"] }, { char: "信", zhuyin: ["ㄒ", "ㄧㄣˋ"] }, { char: "望", zhuyin: ["ㄨㄤˋ"] },
+  { char: "夢", zhuyin: ["ㄇ", "ㄥˋ"] }, { char: "光", zhuyin: ["ㄍ", "ㄨㄤ"] }, { char: "影", zhuyin: ["ㄧ", "ㄥˇ"] }, { char: "聲", zhuyin: ["ㄕ", "ㄥ"] },
+  { char: "色", zhuyin: ["ㄙ", "ㄜˋ"] }, { char: "形", zhuyin: ["ㄒ", "ㄧㄥˊ"] }, { char: "體", zhuyin: ["ㄊ", "ㄧˇ"] }, { char: "力", zhuyin: ["ㄌ", "ㄧˋ"] },
+  { char: "氣", zhuyin: ["ㄑ", "ㄧˋ"] }, { char: "神", zhuyin: ["ㄕ", "ㄣˊ"] }, { char: "心", zhuyin: ["ㄒ", "ㄧㄣ"] }, { char: "情", zhuyin: ["ㄑ", "ㄧㄥˊ"] },
+  { char: "想", zhuyin: ["ㄒ", "ㄧㄤˇ"] }, { char: "知", zhuyin: ["ㄓ", "ㄧ"] }, { char: "識", zhuyin: ["ㄕ", "ㄧˋ"] },
+  { char: "學", zhuyin: ["ㄒ", "ㄩㄝˊ"] }, { char: "問", zhuyin: ["ㄨ", "ㄣˋ"] }, { char: "答", zhuyin: ["ㄉ", "ㄚˊ"] }, { char: "語", zhuyin: ["ㄩ", "ㄩˇ"] },
+  { char: "文", zhuyin: ["ㄨ", "ㄣˊ"] }, { char: "字", zhuyin: ["ㄗ", "ㄧˋ"] }, { char: "書", zhuyin: ["ㄕ", "ㄨ"] }, { char: "畫", zhuyin: ["ㄏ", "ㄨㄚˋ"] },
+  { char: "詩", zhuyin: ["ㄕ", "ㄧ"] }, { char: "歌", zhuyin: ["ㄍ", "ㄜ"] }, { char: "樂", zhuyin: ["ㄩ", "ㄝˋ"] }, { char: "舞", zhuyin: ["ㄨˇ"] },
+  { char: "體", zhuyin: ["ㄊ", "ㄧˇ"] }, { char: "育", zhuyin: ["ㄩˋ"] }, { char: "健", zhuyin: ["ㄐ", "ㄧㄢˋ"] }, { char: "康", zhuyin: ["ㄎ", "ㄤ"] },
+  { char: "醫", zhuyin: ["ㄧ", "ㄧ"] }, { char: "院", zhuyin: ["ㄩ", "ㄢˋ"] }, { char: "病", zhuyin: ["ㄅ", "ㄧㄥˋ"] }, { char: "藥", zhuyin: ["ㄧ", "ㄠˋ"] },
+  { char: "生", zhuyin: ["ㄕ", "ㄥ"] }, { char: "死", zhuyin: ["ㄙ", "ㄧˇ"] }
+];
+let questions = questionsLow;
+
+let current = {};
+let selectedZhuyin = [];
+let score = 0;
+let coins = parseInt(localStorage.getItem('coins')) || 0;
+let timer = 180;
+let interval;
+let isAnswered = false; // 用來判斷是否已經回答過問題
+
+
+const speedSlider = document.getElementById("speedSlider");
+const speedValue = document.getElementById("speedValue");
+
+speedSlider.addEventListener("input", () => {
+  speedValue.innerText = speedSlider.value;
+});
+
+window.onload = () => {
+  // 初始化金幣顯示
+  coins = parseInt(localStorage.getItem('coins')) || 0;
+  updateDisplay();
+  renderQuestion();
+};
+
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
+
+function updateDisplay() {
+  document.getElementById("scoreBoard").innerText = "🏆 得分：" + score;
+  document.getElementById("coinDisplay").innerText = "💰 金幣：" + coins;
+    localStorage.setItem('coins', coins); // 每次顯示時都同步儲存
+
+}
+
+function renderQuestion() {
+    isAnswered = false; // 每次出新題目都重設為 false
+
+  //重設按鈕 false
+  document.getElementById("resetId").disabled = false;
+
+  const q = questions[Math.floor(Math.random() * questions.length)];
+  current = q;
+  selectedZhuyin = [];
+  document.getElementById("character").innerText = q.char;
+  document.getElementById("selected").innerText = "🔎 選擇注音：";
+  document.getElementById("message").innerText = "";
+
+  const options = [...q.zhuyin];
+  const allZhuyin = ["ㄏ", "ㄠˇ", "ㄋ", "ㄧˇ", "ㄒ", "ㄧㄝˋ", "ㄩㄝˊ", "ㄓ", "ㄤ", "ㄧㄡˋ"];
+  while (options.length < 5) {
+    const fake = allZhuyin[Math.floor(Math.random() * allZhuyin.length)];
+    if (!options.includes(fake)) options.push(fake);
+  }
+
+  const container = document.getElementById("options");
+  container.innerHTML = "";
+  shuffle(options).forEach(z => {
+    const btn = document.createElement("button");
+    btn.innerText = z;
+    btn.onclick = () => {
+      selectedZhuyin.push(z);
+      document.getElementById("selected").innerText = "🔎 選擇注音：" + selectedZhuyin.join(" ");
+    };
+    container.appendChild(btn);
+  });
+  // document.getElementById("nextBtn").disabled = true;
+}
+
+function checkAnswer() {
+  const correct = current.zhuyin.join("");
+  const answer = selectedZhuyin.join("");
+  if (answer === correct) {
+    
+    
+    if (isAnswered == false) {  // 只有第一次答對才加分
+      score++;
+      //簡單+1 中等 +2 高年級 +3 金幣 
+      if (document.getElementById("levelSelect").value === "low") {
+        coins += 1; // 每答對一次加 1分
+      } else if (document.getElementById("levelSelect").value === "mid") {
+        coins += 2; // 每答對一次加 2 分
+      } else {
+        coins += 3; // 每答對一次加 3 分
+      }
+     
+      document.getElementById("scoreBoard").innerText = "🏆 得分："
+      localStorage.setItem('coins', coins);
+    }
+
+    isAnswered = true; // 標記本題已答對
+    document.getElementById("correctSound").play();
+    // 顯示正確注音並加上背景顏色
+    showCorrectZhuyin(current.zhuyin);
+    speakZhuyin(current.zhuyin, current.char);
+    document.getElementById("message").innerText = `🎉 正確！+${coins} 金幣`;
+    document.getElementById("nextBtn").disabled = false;
+    //重設按鈕反灰
+    document.getElementById("resetId").disabled = true;
+    updateDisplay();
+  } else {
+  document.getElementById("wrongSound").play();
+  coins = Math.max(0, coins - 10); // 金幣不得低於 0
+reset(); // 先清除畫面
+document.getElementById("message").innerText = "❌ 錯誤！-10 金幣，再試一次！"; // 再顯示訊息
+
+
+  // 錯誤時自動重播注音
+  speakZhuyin(current.zhuyin, current.char);
+  reset();
+  updateDisplay(); // ← 加上這行更新金幣與分數顯示
+  }
+
+// 顯示正確注音並加上背景顏色
+function showCorrectZhuyin(zhuyinArr) {
+  const selectedDiv = document.getElementById("selected");
+  selectedDiv.innerHTML = "選擇注音：";
+  zhuyinArr.forEach(z => {
+    const span = document.createElement("span");
+    span.innerText = z;
+    span.style.margin = "0 5px";
+    span.style.background = "#ffe066";
+    span.style.borderRadius = "6px";
+    span.style.padding = "2px 8px";
+    span.style.color = "#222";
+    selectedDiv.appendChild(span);
+  });
+}
+}
+
+function reset() {
+  selectedZhuyin = [];
+  document.getElementById("selected").innerText = "選擇注音：";
+  document.getElementById("message").innerText = "";
+}
+
+function nextQuestion() {
+  renderQuestion();
+}
+
+function speakZhuyin(zhuyinArr, fullChar) {
+  let delay = 0;
+  const selectedDiv = document.getElementById("selected");
+  selectedDiv.innerHTML = "選擇注音：";
+  zhuyinArr.forEach((z, i) => {
+    const span = document.createElement("span");
+    span.innerText = z;
+    span.style.margin = "0 5px";
+    setTimeout(() => {
+      span.classList.add("bounce");
+      const msg = new SpeechSynthesisUtterance(z);
+      msg.lang = "zh-TW";
+      msg.rate = parseFloat(speedSlider.value);
+      msg.pitch = 1;
+      msg.volume = parseFloat(volumeSlider.value);
+      speechSynthesis.speak(msg);
+    }, delay);
+    selectedDiv.appendChild(span);
+    delay += 600;
+  });
+  setTimeout(() => {
+    const msg = new SpeechSynthesisUtterance(fullChar);
+    msg.lang = "zh-TW";
+    msg.rate = parseFloat(speedSlider.value);
+    speechSynthesis.speak(msg);
+  }, delay + 400);
+}
+
+function startGame() {
+  // 根據年級選擇題庫
+  const level = document.getElementById("levelSelect").value;
+  if (level === "low") {
+    questions = questionsLow;
+  } else if (level === "mid") {
+    questions = questionsMid;
+  } else {
+    questions = questionsHigh;
+  }
+  score = 0;
+  timer = 180;
+  document.getElementById("startBtn").style.display = "none";
+  document.getElementById("character").style.display = "block";
+  renderQuestion();
+  updateDisplay();
+  document.getElementById("timer").innerText = "⏳ 倒數：180秒";
+
+  interval = setInterval(() => {
+    timer--;
+    document.getElementById("timer").innerText = `⏳ 倒數：${timer}秒`;
+    if (timer <= 0) {
+      clearInterval(interval);
+      document.getElementById("message").innerText = `⏰ 時間到！總得分：${score} 分，加總金幣：${coins}`;
+      document.getElementById("character").style.display = "none";
+      document.getElementById("options").innerHTML = "";
+      document.getElementById("selected").innerText = "";
+      document.getElementById("startBtn").style.display = "inline-block";
+    }
+  }, 1000);
+}
+
+// 監聽年級選擇變更
+document.getElementById("levelSelect").addEventListener("change", function() {
+  const level = this.value;
+  if (level === "low") {
+    questions = questionsLow;
+  } else if (level === "mid") {
+    questions = questionsMid;
+  } else if (level === "high") {
+    questions = questionsHigh;
+  }
+  reset();
+});
+
+const volumeSlider = document.getElementById("volumeSlider");
+const volumeValue = document.getElementById("volumeValue");
+
+volumeSlider.addEventListener("input", () => {
+  volumeValue.innerText = parseFloat(volumeSlider.value).toFixed(2);
+});
+</script>
+</body>
+</html>

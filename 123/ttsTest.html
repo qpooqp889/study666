@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>A~Z 字母發音遊戲</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 30px;
+    }
+    .letter-button {
+      font-size: 24px;
+      margin: 10px;
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .letter-button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>A ~ Z 字母發音遊戲</h1>
+  <div id="buttonContainer"></div>
+
+  <script>
+    const container = document.getElementById('buttonContainer');
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+    // 建立 A~Z 按鈕
+    for (let i = 0; i < alphabet.length; i++) {
+      const char = alphabet[i];
+      const button = document.createElement('button');
+      button.textContent = char;
+      button.className = 'letter-button';
+      button.onclick = () => speakLetter(char);
+      container.appendChild(button);
+    }
+
+    // 使用 TTS 發音
+    function speakLetter(letter) {
+      const utterance = new SpeechSynthesisUtterance(letter);
+      utterance.lang = 'en-US'; // 英文發音
+      speechSynthesis.speak(utterance);
+    }
+  </script>
+
+</body>
+</html>

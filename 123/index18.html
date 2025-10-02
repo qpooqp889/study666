@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>單詞拼句王</title>
+  <style>
+    body {
+      font-family: "Comic Sans MS", sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #fff8e7;
+    }
+    .image-box {
+      margin: 20px 0;
+    }
+    img {
+      max-width: 80%;
+      height: auto;
+    }
+    .word-buttons button {
+      font-size: 24px;
+      margin: 8px;
+      padding: 15px 20px;
+      background-color: #ffcc70;
+      border: none;
+      border-radius: 12px;
+      box-shadow: 2px 2px 5px #ccc;
+    }
+    .word-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .word-buttons button:hover {
+      background-color: #ffa500;
+      cursor: pointer;
+    }
+    .output {
+      margin-top: 20px;
+      font-size: 28px;
+      color: #333;
+      min-height: 40px;
+    }
+    .success {
+      color: green;
+      font-weight: bold;
+    }
+    button.action {
+      font-size: 22px;
+      margin: 10px;
+      padding: 10px 18px;
+      background-color: #a0e7e5;
+      border: none;
+      border-radius: 10px;
+    }
+    @media screen and (max-width: 600px) {
+      .word-buttons button, button.action {
+        font-size: 20px;
+        padding: 12px 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+          <a href="index.html" style="position:absolute;left:10px;top:10px;font-size:24px;text-decoration:none;background:#eee;padding:6px 18px;border-radius:8px;color:#222;box-shadow:0 2px 6px #ccc;">← 返回選單</a>
+   <div class="container">
+  <h1>🧩 單詞拼句王</h1>
+
+  <!-- 新增：顯示目前第幾題 -->
+  <div id="progress" style="font-size:20px; color:#1976d2; margin-bottom:10px;"></div>
+
+  <!-- 新增：題目選擇下拉選單 -->
+  <div style="margin-bottom:12px;">
+    <label for="questionSelect" style="font-size:16px;">選擇題號：</label>
+    <select id="questionSelect" style="font-size:16px; padding:3px 8px;"></select>
+    <button class="action" onclick="jumpToQuestion()">跳到題目</button>
+  </div>
+
+  <!-- 顯示中文題目 -->
+  <div class="question" id="chQuestion" style="font-size:26px; margin:20px 0; color:#444;"></div>
+
+  <div class="word-buttons" id="wordButtons"></div>
+
+  <div class="output" id="sentenceOutput"></div>
+  <button class="action" onclick="checkSentence()">✅ 檢查句子/發音</button>
+  <button class="action" onclick="resetSentence()">🔁 重設</button>
+  <button class="action" id="nextBtn" onclick="nextSentence()" style="display:none;">➡️ 下一題</button>
+  <div>
+    <label for="rateSlider">語音速度:</label>
+    <input type="range" id="rateSlider" min="0.1" max="1.5" step="0.1" value="0.1" /> 
+    <span id="rateValue">0.5</span>
+  </div>
+<div style="font-size:20px; margin: 10px;">
+  💰 金幣：<span id="coinDisplay">0</span>
+</div>
+
+<button class="action" onclick="showHint()">💡 顯示答案（-50 金幣）</button>
+
+  <script>
+    document.getElementById("rateSlider").addEventListener("input", function() {
+      document.getElementById("rateValue").innerText = this.value;
+    }); 
+
+
+
+    const sentences = [
+        // 新增的 10 題
+  { words: ["Dad", "drives", "a", "car"], options: ["Dad", "drives", "a", "car", "bike"], ch: "爸爸開車", level: 2 },
+  { words: ["She", "drinks", "milk"], options: ["She", "drinks", "milk", "juice", "eats"], ch: "她喝牛奶", level: 1 },
+  { words: ["The", "baby", "is", "crying"], options: ["The", "baby", "is", "crying", "sleeping"], ch: "嬰兒在哭", level: 2 },
+  { words: ["He", "reads", "a", "newspaper"], options: ["He", "reads", "a", "newspaper", "book"], ch: "他在看報紙", level: 2 },
+  { words: ["It", "is", "a", "big", "dog"], options: ["It", "is", "a", "big", "dog", "cat"], ch: "那是一隻大狗", level: 2 },
+  { words: ["We", "eat", "lunch", "at", "noon"], options: ["We", "eat", "lunch", "at", "noon", "night"], ch: "我們中午吃午餐", level: 3 },
+  { words: ["The", "clock", "is", "ticking"], options: ["The", "clock", "is", "ticking", "stopped"], ch: "時鐘在滴答作響", level: 3 },
+  { words: ["I", "see", "a", "bird"], options: ["I", "see", "a", "bird", "fish"], ch: "我看到一隻鳥", level: 1 },
+  { words: ["He", "plays", "the", "piano"], options: ["He", "plays", "the", "piano", "guitar"], ch: "他彈鋼琴", level: 2 },
+  { words: ["She", "wears", "a", "hat"], options: ["She", "wears", "a", "hat", "scarf"], ch: "她戴著帽子", level: 1 },
+    { words: ["They", "run", "in", "the", "park"], options: ["They", "run", "in", "the", "park", "school"], ch: "他們在公園跑步", level: 2 },
+  { words: ["The", "girl", "has", "a", "doll"], options: ["The", "girl", "has", "a", "doll", "ball"], ch: "女孩有一個洋娃娃", level: 2 },
+  { words: ["We", "eat", "dinner", "at", "home"], options: ["We", "eat", "dinner", "at", "home", "school"], ch: "我們在家吃晚餐", level: 2 },
+  { words: ["He", "draws", "a", "big", "circle"], options: ["He", "draws", "a", "big", "circle", "line"], ch: "他畫了一個大圓圈", level: 2 },
+  { words: ["She", "runs", "with", "her", "dog"], options: ["She", "runs", "with", "her", "dog", "cat"], ch: "她和狗一起跑步", level: 2 },
+  { words: ["The", "kids", "sing", "a", "song"], options: ["The", "kids", "sing", "a", "song", "game"], ch: "孩子們唱歌", level: 2 },
+  { words: ["Dad", "reads", "a", "funny", "book"], options: ["Dad", "reads", "a", "funny", "book", "toy"], ch: "爸爸讀一本有趣的書", level: 2 },
+  { words: ["I", "watch", "TV", "after", "school"], options: ["I", "watch", "TV", "after", "school", "lunch"], ch: "我放學後看電視", level: 2 },
+  { words: ["She", "writes", "with", "a", "pen"], options: ["She", "writes", "with", "a", "pen", "pencil"], ch: "她用筆寫字", level: 2 },
+  { words: ["The", "boy", "plays", "with", "blocks"], options: ["The", "boy", "plays", "with", "blocks", "books"], ch: "男孩玩積木", level: 2 },
+      { words: ["I", "eat", "apple"], options: ["I", "eat", "apple", "banana", "He"], ch: "我吃蘋果", level: 1 },
+  { words: ["The", "dog", "runs"], options: ["The", "dog", "runs", "jumps", "cat"], ch: "狗在跑", level: 1 },
+  { words: ["She", "likes", "music"], options: ["She", "likes", "music", "food", "dance"], ch: "她喜歡音樂", level: 1 },
+  { words: ["The", "boy", "jumps"], options: ["The", "boy", "jumps", "runs", "plays"], ch: "男孩在跳", level: 1 },
+  { words: ["A", "cat", "sleeps"], options: ["A", "cat", "sleeps", "barks", "eats"], ch: "貓在睡覺", level: 1 },
+  { words: ["Children", "play", "outside"], options: ["Children", "play", "outside", "inside", "school"], ch: "小孩在外面玩", level: 2 },
+  { words: ["We", "go", "to", "school"], options: ["We", "go", "to", "school", "home"], ch: "我們去學校", level: 2 },
+  { words: ["He", "rides", "a", "bus"], options: ["He", "rides", "a", "bus", "car"], ch: "他搭公車", level: 2 },
+  { words: ["She", "reads", "a", "book"], options: ["She", "reads", "a", "book", "pencil"], ch: "她在讀書", level: 2 },
+  { words: ["He", "has", "an", "apple"], options: ["He", "has", "an", "apple", "banana"], ch: "他有一個蘋果", level: 2 },
+  { words: ["I", "kick", "a", "ball"], options: ["I", "kick", "a", "ball", "run"], ch: "我踢球", level: 2 },
+  { words: ["The", "book", "is", "on", "the", "table"], options: ["The", "book", "is", "on", "the", "table"], ch: "書在桌上", level: 3 },
+  { words: ["It", "is", "ten", "o'clock"], options: ["It", "is", "ten", "o'clock", "now"], ch: "現在十點鐘", level: 2 },
+  { words: ["Time", "to", "sleep"], options: ["Time", "to", "sleep", "wake", "eat"], ch: "該睡覺了", level: 1 },
+  { words: ["The", "sun", "is", "bright"], options: ["The", "sun", "is", "bright", "dark"], ch: "太陽很明亮", level: 2 },
+  { words: ["We", "live", "in", "a", "house"], options: ["We", "live", "in", "a", "house"], ch: "我們住在一個房子裡", level: 3 },
+  { words: ["Mom", "cooks", "in", "the", "kitchen"], options: ["Mom", "cooks", "in", "the", "kitchen"], ch: "媽媽在廚房煮飯", level: 3 },
+  { words: ["We", "love", "our", "family"], options: ["We", "love", "our", "family", "friends"], ch: "我們愛我們的家庭", level: 2 },
+  { words: ["They", "eat", "ice", "cream"], options: ["They", "eat", "ice", "cream", "cake"], ch: "他們吃冰淇淋", level: 2 },
+  { words: ["Birds", "live", "in", "trees"], options: ["Birds", "live", "in", "trees", "sky"], ch: "鳥兒住在樹上", level: 2 },
+
+
+    ];
+
+    let sentence = [];
+    let currentIndex = 0;
+    let isCorrect = false;
+
+    // 新增：初始化題目選擇下拉選單
+    const questionSelect = document.getElementById("questionSelect");
+    sentences.forEach((s, idx) => {
+      const opt = document.createElement("option");
+      opt.value = idx;
+      opt.text = `lv${s.level} 第 ${idx + 1} 題：${s.ch}`;
+      questionSelect.appendChild(opt);
+    });
+
+    // 新增：跳到指定題目
+    function jumpToQuestion() {
+      currentIndex = parseInt(questionSelect.value, 10);
+      isCorrect = false;
+
+
+
+
+      loadSentence(currentIndex);
+      document.getElementById("nextBtn").style.display = "none";
+    }
+
+    function updateProgress() {
+      document.getElementById("progress").innerText = `第 ${currentIndex + 1} / ${sentences.length} 題`;
+      questionSelect.value = currentIndex;
+    }
+
+    function checkSentence() {
+
+      const output = document.getElementById("sentenceOutput");
+      const correct = sentences[currentIndex].words;
+
+
+       const today = getToday();
+
+  // 取得今天已完成的題目記錄
+  let doneData = JSON.parse(localStorage.getItem("doneToday") || "{}");
+  let todayDone = doneData[today] || [];
+
+if (JSON.stringify(sentence) === JSON.stringify(correct)) {
+  speakSentence(correct.join(" "));
+    if (isCorrect) return;
+
+    output.innerHTML = `<span class="success">🎉 正確！</span><br>
+        <span style="font-size:22px;">${correct.join(" ")}<br>👉 ${sentences[currentIndex].ch}</span>`;
+   
+
+    document.getElementById("nextBtn").style.display = "inline-block";
+    isCorrect = true;
+
+    // ✅ 如果今天還沒答對這題，就給金幣
+    if (!todayDone.includes(currentIndex)) {
+      changeCoins(10);
+      todayDone.push(currentIndex);
+      doneData[today] = todayDone;
+      localStorage.setItem("doneToday", JSON.stringify(doneData));
+    } else {
+
+      // output.innerHTML += `<br><span style="color:#999;">今天已經答對這題，沒有再給金幣喔～</span>`;
+    }
+
+  } else {
+    output.innerHTML += ' ❌ 錯誤，再試一次！';
+    changeCoins(-10);
+  }
+    }
+
+    function nextSentence() {
+      currentIndex++;
+      if (currentIndex >= sentences.length) {
+        currentIndex = 0;
+      }
+      isCorrect = false;
+
+updateCoinDisplay();
+
+      loadSentence(currentIndex);
+      document.getElementById("nextBtn").style.display = "none";
+    }
+
+
+    function updateCoinDisplay() {
+        let coins = parseInt(localStorage.getItem('coins')) || 0; // 預設100金幣
+
+  document.getElementById("coinDisplay").innerText = coins;
+  localStorage.setItem("coins", coins);
+
+}
+
+function changeCoins(amount) {
+  let coins = parseInt(localStorage.getItem('coins')) || 0; // 預設100金幣
+
+  coins += amount;
+  if (coins < 0) coins = 0; // 不允許負金幣
+
+  // 更新金幣顯示
+  localStorage.setItem('coins', coins);
+
+  updateCoinDisplay();
+}
+
+    function loadSentence(index) {
+      sentence = [];
+      if (!isCorrect) {
+        document.getElementById("sentenceOutput").innerText = "";
+      }
+      // 顯示中文題目
+      document.getElementById("chQuestion").innerText = sentences[index].ch;
+      const btnBox = document.getElementById("wordButtons");
+      btnBox.innerHTML = "";
+
+      // 隨機排列 options
+      const shuffled = sentences[index].options.slice().sort(() => Math.random() - 0.5);
+
+      shuffled.forEach(word => {
+        const btn = document.createElement("button");
+        btn.innerText = word;
+        btn.onclick = () => addWord(word);
+        btnBox.appendChild(btn);
+      });
+      document.getElementById("nextBtn").style.display = "none";
+      updateProgress(); // 新增：更新進度顯示
+    }
+
+    function addWord(word) {
+      if (isCorrect) return;
+      sentence.push(word);
+      document.getElementById("sentenceOutput").innerText = sentence.join(" ");
+    }
+
+    function resetSentence() {
+      if (isCorrect) return;
+      sentence = [];
+      document.getElementById("sentenceOutput").innerText = "";
+    }
+
+    function speakSentence(text) {
+      const msg = new SpeechSynthesisUtterance(text);
+      msg.lang = 'en-US';
+      msg.rate = document.getElementById("rateSlider") ? parseFloat(document.getElementById("rateSlider").value) : 0.8;
+      window.speechSynthesis.speak(msg);
+    }
+
+        //提示
+    function showHint() {
+        let coins = parseInt(localStorage.getItem('coins')) || 0; // 預設100金幣
+
+  if (coins < 50) {
+    alert("金幣不足，無法顯示提示！");
+    return;
+  }
+
+  const correct = sentences[currentIndex].words.join(" ");
+  document.getElementById("sentenceOutput").innerHTML = `<span style="color:#999;">提示：${correct}</span>`;
+  
+  changeCoins(-50); // 💸 提示扣金幣
+}
+
+//每日重複答對不發金幣
+function getToday() {
+  const today = new Date();
+  return today.toISOString().split('T')[0]; // 例如 "2025-07-12"
+}
+
+// window.onload = function() {
+  // 初始化金幣顯示 
+window.onload = function() {
+  let coins = parseInt(localStorage.getItem('coins')) || 0; // 預設100金幣
+  document.getElementById("coinDisplay").innerText = coins;
+  localStorage.setItem("coins", coins); 
+
+   const today = getToday();
+  let doneData = JSON.parse(localStorage.getItem("doneToday") || "{}");
+  // 清除不是今天的紀錄
+  const cleaned = {};
+  if (doneData[today]) {
+    cleaned[today] = doneData[today];
+  }
+  localStorage.setItem("doneToday", JSON.stringify(cleaned));
+
+};
+
+    loadSentence(currentIndex);
+  </script>
+</body>
+</html>
+

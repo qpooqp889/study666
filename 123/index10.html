@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音樂室</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style10.css">
+</head>
+<body>
+
+    <div class="container py-5">
+                <a href="index.html" style="position:absolute;left:10px;top:10px;font-size:24px;text-decoration:none;background:#eee;padding:6px 18px;border-radius:8px;color:#222;box-shadow:0 2px 6px #ccc;">← 返回選單</a>
+   <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="music-room card shadow">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h2 class="mb-0">音樂室</h2>
+                        <div class="volume-control">
+                            <i class="bi bi-volume-up me-2"></i>
+                            <input type="range" class="form-range" id="volumeControl" min="0" max="100" value="50">
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- 音樂播放器 -->
+                        <div class="music-player mb-4">
+                            <div class="current-track">
+                                <img src="music-cover.jpg" alt="專輯封面" class="album-cover">
+                                <div class="track-info">
+                                    <h3 class="track-title">歌曲名稱</h3>
+                                    <p class="track-artist">歌手名稱</p>
+                                </div>
+                            </div>
+                            <div class="progress-bar-container">
+                                <span class="current-time">0:00</span>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <span class="duration">3:30</span>
+                            </div>
+                            <div class="controls">
+                                <button class="btn btn-link"><i class="bi bi-skip-backward-fill"></i></button>
+                                <button class="btn btn-primary rounded-circle play-btn">
+                                    <i class="bi bi-play-fill"></i>
+                                </button>
+                                <button class="btn btn-link"><i class="bi bi-skip-forward-fill"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- 播放清單 -->
+                        <div class="playlist">
+                            <h4 class="mb-3">播放清單</h4>
+                            <div class="list-group">
+                                <a href="#" class="list-group-item list-group-item-action active">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">第一首歌</h5>
+                                        <small>3:30</small>
+                                    </div>
+                                    <p class="mb-1">歌手名稱</p>
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">第二首歌</h5>
+                                        <small>4:15</small>
+                                    </div>
+                                    <p class="mb-1">歌手名稱</p>
+                                </a>
+                                <!-- 更多歌曲... -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 在 card-body 最下方添加講台區域 -->
+                    <div class="stage-area mt-4">
+                        <div class="stage">
+                            <div class="instruments">
+                                <div class="instrument" onclick="playSound('guitar')">
+                                    <img src="guitar.png" alt="吉他" class="instrument-icon">
+                                    <audio id="guitarSound" src="guitar-sound.mp3"></audio>
+                                </div>
+                                <div class="instrument" onclick="playSound('microphone')">
+                                    <img src="microphone.png" alt="麥克風" class="instrument-icon">
+                                    <audio id="microphoneSound" src="microphone-sound.mp3"></audio>
+                                </div>
+                                <div class="instrument" onclick="playSound('drums')">
+                                    <img src="drums.png" alt="鼓" class="instrument-icon">
+                                    <audio id="drumsSound" src="drums-sound.mp3"></audio>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- 在 body 結束標籤前添加 JavaScript -->
+    <script>
+    function playSound(instrument) {
+        const sound = document.getElementById(instrument + 'Sound');
+        sound.currentTime = 0; // 重置音效
+        sound.play();
+        
+        // 添加點擊動畫效果
+        const element = document.querySelector(`[onclick="playSound('${instrument}')"]`);
+        element.classList.add('playing');
+        setTimeout(() => {
+            element.classList.remove('playing');
+        }, 200);
+    }
+    </script>
+</body>
+</html>

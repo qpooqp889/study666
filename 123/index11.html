@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 世界</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+                <a href="index.html" style="position:absolute;left:10px;top:10px;font-size:24px;text-decoration:none;background:#eee;padding:6px 18px;border-radius:8px;color:#222;box-shadow:0 2px 6px #ccc;">← 返回選單</a>
+   <div class="container">
+        <button class="control-btn" id="left">←</button>
+        <button class="control-btn" id="up">↑</button>
+        <button class="control-btn" id="down">↓</button>
+        <button class="control-btn" id="right">→</button>
+        <button class="control-btn" id="jump">↑↑</button>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // 初始化基本場景
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // 添加光源
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 5, 5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+
+        // 創建地面
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        const groundMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x88ff88,
+            side: THREE.DoubleSide
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // 添加控制變數
+        const moveSpeed = 0.1;
+        const rotateSpeed = 0.05;
+        const jumpForce = 0.15;
+        const gravity = 0.006;
+        let characterRotation = 0;
+        let verticalVelocity = 0;
+        let isJumping = false;
+
+        // 控制按鍵狀態
+        const keys = {
+            ArrowUp: false,
+            ArrowDown: false,
+            ArrowLeft: false,
+            ArrowRight: false,
+            Space: false
+        };
+
+        // 創建人物
+        function createCharacter() {
+            const character = new THREE.Group();
+
+            // 身體
+            const bodyGeometry = new THREE.BoxGeometry(1, 1.5, 0.5);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x3366ff });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 1.25;
+            body.castShadow = true;
+            character.add(body);
+
+            // 頭部
+            const headGeometry = new THREE.SphereGeometry(0.3, 32, 32);
+            const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffcc99 });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 2.15;
+            head.castShadow = true;
+            character.add(head);
+
+            // 腿部
+            const legGeometry = new THREE.BoxGeometry(0.25, 0.75, 0.25);
+            const legMaterial = new THREE.MeshStandardMaterial({ color: 0x3366ff });
+
+            const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+            leftLeg.position.set(-0.2, 0.375, 0);
+            leftLeg.castShadow = true;
+            character.add(leftLeg);
+
+            const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+            rightLeg.position.set(0.2, 0.375, 0);
+            rightLeg.castShadow = true;
+            character.add(rightLeg);
+
+            // 將腿部存儲為屬性，以便後續動畫使用
+            character.leftLeg = leftLeg;
+            character.rightLeg = rightLeg;
+
+            return character;
+        }
+
+        const character = createCharacter();
+        scene.add(character);
+
+        // 添加跳躍按鈕事件監聽
+        document.getElementById('jump').addEventListener('click', jump);
+
+        // 添加鍵盤事件監聽
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                keys.Space = true;
+                jump();
+            } else if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') {
+                keys.Space = false;
+            } else if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = false;
+            }
+        });
+
+        // 添加腿部動畫函數
+        function animateLegs(phase) {
+            // 跳躍準備動作
+            if (phase === 'prepare') {
+                character.leftLeg.rotation.x = Math.PI / 6;  // 向後彎曲
+                character.rightLeg.rotation.x = Math.PI / 6;
+                character.leftLeg.position.y = 0.3;  // 降低位置
+                character.rightLeg.position.y = 0.3;
+            }
+            // 跳躍動作
+            else if (phase === 'jump') {
+                character.leftLeg.rotation.x = -Math.PI / 6;  // 向前伸展
+                character.rightLeg.rotation.x = -Math.PI / 6;
+                character.leftLeg.position.y = 0.375;  // 恢復原始位置
+                character.rightLeg.position.y = 0.375;
+            }
+            // 著地動作
+            else if (phase === 'land') {
+                character.leftLeg.rotation.x = Math.PI / 4;  // 著地緩衝
+                character.rightLeg.rotation.x = Math.PI / 4;
+                character.leftLeg.position.y = 0.3;
+                character.rightLeg.position.y = 0.3;
+            }
+            // 恢復站立姿勢
+            else if (phase === 'reset') {
+                character.leftLeg.rotation.x = 0;
+                character.rightLeg.rotation.x = 0;
+                character.leftLeg.position.y = 0.375;
+                character.rightLeg.position.y = 0.375;
+            }
+        }
+
+        // 跳躍函數
+        function jump() {
+            if (!isJumping) {
+                isJumping = true;
+                verticalVelocity = jumpForce;
+                
+                // 跳躍動畫序列
+                animateLegs('prepare');
+                setTimeout(() => {
+                    animateLegs('jump');
+                }, 100);
+                
+                // 在落地時重置動畫
+                const jumpInterval = setInterval(() => {
+                    if (!isJumping) {
+                        animateLegs('land');
+                        setTimeout(() => {
+                            animateLegs('reset');
+                        }, 150);
+                        clearInterval(jumpInterval);
+                    }
+                }, 100);
+            }
+        }
+
+        // 動畫循環
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // 更新人物位置和旋轉
+            if (keys.ArrowLeft) {
+                characterRotation += rotateSpeed;
+                character.rotation.y = characterRotation;
+            }
+            if (keys.ArrowRight) {
+                characterRotation -= rotateSpeed;
+                character.rotation.y = characterRotation;
+            }
+            if (keys.ArrowUp) {
+                character.position.x += Math.sin(characterRotation) * moveSpeed;
+                character.position.z += Math.cos(characterRotation) * moveSpeed;
+            }
+            if (keys.ArrowDown) {
+                character.position.x -= Math.sin(characterRotation) * moveSpeed;
+                character.position.z -= Math.cos(characterRotation) * moveSpeed;
+            }
+
+            // 處理跳躍和重力
+            if (isJumping) {
+                character.position.y += verticalVelocity;
+                verticalVelocity -= gravity;
+
+                // 檢查是否落地
+                if (character.position.y <= 0) {
+                    character.position.y = 0;
+                    verticalVelocity = 0;
+                    isJumping = false;
+                }
+            }
+
+            // 更新相機位置
+            const cameraOffset = new THREE.Vector3(
+                Math.sin(characterRotation) * -10,
+                5 + character.position.y * 0.5,
+                Math.cos(characterRotation) * -10
+            );
+            camera.position.copy(character.position).add(cameraOffset);
+            camera.lookAt(character.position);
+
+            renderer.render(scene, camera);
+        }
+
+        // 開始動畫
+        animate();
+
+        // 處理視窗大小變化
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

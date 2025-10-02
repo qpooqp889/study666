@@ -1,0 +1,87 @@
+body {
+    background-color: #F5F5DC;  /* 米色背景 */
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 100%;
+    padding: 15px;
+}
+
+.game-container {
+    max-width: 100%;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    padding: 15px;
+}
+
+.game-header {
+    display: flex;
+    flex-wrap: wrap;  /* 允許換行 */
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 5px;
+}
+
+.game-header > div {
+    flex: 1;
+    min-width: 120px;  /* 確保文字不會擠在一起 */
+    text-align: center;
+}
+
+#gameCanvas {
+    width: 100%;
+    height: auto;
+    max-width: 800px;
+    margin: 0 auto;
+    display: block;
+    background: #F5F5DC;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+}
+
+.tower-controls {
+    display: flex;
+    flex-wrap: wrap;  /* 允許按鈕換行 */
+    gap: 10px;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.tower-btn, #heal-btn {
+    flex: 1;
+    min-width: 150px;  /* 最小按鈕寬度 */
+    margin: 5px;
+    padding: 10px;
+    font-size: 14px;
+    white-space: nowrap;  /* 防止文字換行 */
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .game-header {
+        font-size: 14px;
+    }
+
+    .tower-btn, #heal-btn {
+        min-width: 120px;
+        font-size: 12px;
+        padding: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-header > div {
+        flex: 100%;  /* 在小螢幕上單獨佔一行 */
+    }
+
+    .tower-btn, #heal-btn {
+        flex: 100%;
+        margin: 5px 0;
+    }
+} 

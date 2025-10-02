@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>遊戲選單</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #f9d423 0%, #ff4e50 100%);
+      min-height: 100vh;
+      margin: 0;
+      font-family: "Comic Sans MS", "Microsoft JhengHei", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 30px 10px;
+    }
+    h1 {
+      font-size: 2.8em;
+      color: #fff;
+      margin-bottom: 30px;
+      text-shadow: 2px 2px 8px #d17b00;
+      letter-spacing: 2px;
+    }
+    .game-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      justify-content: center;
+      width: 100%;
+      max-width: 700px;
+    }
+    .game-btn {
+      flex: 1 1 220px;
+      min-width: 180px;
+      max-width: 300px;
+      background: linear-gradient(90deg, #a0e7e5 0%, #f9d423 100%);
+      color: #333;
+      font-size: 1.5em;
+      font-weight: bold;
+      border: none;
+      border-radius: 18px;
+      padding: 32px 0;
+      margin: 0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+      cursor: pointer;
+      transition: transform 0.18s, box-shadow 0.18s, background 0.3s;
+      outline: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .game-btn:hover, .game-btn:focus {
+      transform: scale(1.07) rotate(-2deg);
+      box-shadow: 0 8px 32px rgba(255, 78, 80, 0.18);
+      background: linear-gradient(90deg, #f9d423 0%, #a0e7e5 100%);
+      color: #ff4e50;
+    }
+    @media (max-width: 600px) {
+      .game-list {
+        flex-direction: column;
+        gap: 18px;
+      }
+      .game-btn {
+        font-size: 1.2em;
+        padding: 22px 0;
+        min-width: 120px;
+      }
+      h1 {
+        font-size: 2em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>遊戲選擇</h1>
+  <div class="game-list" id="gameList"></div>
+  <script>
+    // 假設 index1.html ~ index18.html 都存在
+    const games = [
+         { file: "Generated/index.html", name: "儲值中心" },
+      { file: "Moon-Blaster/index.html", name: "彈射單字" },
+       { file: "pwa-gacha/index.html", name: "蛋仔抽卡片" },
+           { file: "room/index.html", name: "🐈🐈🐈溫馨的家" },
+            { file: "idiom-rpg/idiom-rpg.html", name: "🧙‍♂️成語勇者🐉" },
+
+      { file: "store-game/index.html", name: " 🍙🍛🥤☕便利商店" },
+
+      { file: "123stop-en.html", name: "1、2、3 木頭人 🟢🟡🔴（單字挑戰）" },
+                  { file: "國字選注音遊戲.html", name: "📙 國字選注音遊戲" },
+
+            { file: "index14.html", name: "🔤 英文拼字遊戲" },
+            { file: "index15.html", name: "📖 成語選字學習遊戲" },
+            { file: "index16.html", name: "🍕 數學食物派對" },
+            { file: "index17.html", name: "🧠 腦力解碼任務" },
+            { file: "index18.html", name: "🧩 單詞拼句王" },
+{ file: "index19.html", name: "🚀 錯字偵探：句型大挑戰" },
+          { file: "mosquito-game.html", name: "🦟打蚊子遊戲 " },  
+         { file: "index21.html", name: "🎰 拉霸機 " },  
+            { file: "index1.html", name: "🎨 顏色和表情選擇器" },
+    { file: "index2.html", name: "🎡 幸運轉輪盤" },
+    { file: "index5.html", name: "🧩 俄羅斯方塊" },
+    { file: "index10.html", name: "🎵 音樂室" },
+    { file: "index11.html", name: "🌏 3D 世界" },
+    { file: "index12.html", name: "🛡️ 守塔遊戲" },
+    { file: "index13.html", name: "🔫 簡單 FPS 遊戲" },
+  
+
+    ];
+    const list = document.getElementById('gameList');
+    games.forEach(g => {
+      const a = document.createElement('a');
+      a.href = g.file;
+      a.className = 'game-btn';
+      a.innerText = g.name;
+      a.tabIndex = 0;
+      a.setAttribute('aria-label', g.name + ' 進入');
+      list.appendChild(a);
+    });
+  </script>
+</body>
+</html>
