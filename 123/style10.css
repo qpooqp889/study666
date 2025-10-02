@@ -1,0 +1,75 @@
+/* 在原有的 CSS 後面添加講台樣式 */
+.stage-area {
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 15px;
+}
+
+.stage {
+    background: linear-gradient(to bottom, #8B4513, #A0522D);
+    height: 120px;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    /* 木紋效果 */
+    background-image: 
+        repeating-linear-gradient(
+            90deg,
+            rgba(255,255,255,0.1),
+            rgba(255,255,255,0.1) 20px,
+            transparent 20px,
+            transparent 40px
+        );
+}
+
+.instruments {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 100%;
+}
+
+.instrument {
+    cursor: pointer;
+    transition: transform 0.2s;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.instrument:hover {
+    transform: scale(1.1);
+}
+
+.instrument.playing {
+    transform: scale(0.95);
+}
+
+.instrument-icon {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+    .stage {
+        height: 100px;
+    }
+
+    .instrument {
+        width: 60px;
+        height: 60px;
+        padding: 10px;
+    }
+
+    .instrument-icon {
+        width: 35px;
+        height: 35px;
+    }
+} 

@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>錯字偵探</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+      padding: 20px;
+      min-height: 100vh;
+      margin: 0;
+      transition: background 0.5s;
+    }
+    /* 藍色主題 */
+    body.theme-blue {
+      background: linear-gradient(135deg, #42a5f5 0%, #00bcd4 100%);
+    }
+    /* 綠色主題 */
+    body.theme-green {
+      background: linear-gradient(135deg, #1b5e20 0%, #388e3c 100%);
+    }
+    h1 {
+      font-size: 2em;
+      color: #fff;
+      text-shadow: 2px 2px 8px #90caf9, 0 0 2px #00bcd4;
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+      transition: text-shadow 0.5s;
+    }
+    body.theme-green h1 {
+      text-shadow: 2px 2px 8px #a5d6a7, 0 0 2px #1b5e20;
+    }
+    .question {
+      margin-bottom: 20px;
+      font-size: 1.25em;
+      color: #333;
+      background: #e3f2fd;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 2px 8px #90caf960;
+      transition: background 0.5s;
+    }
+    body.theme-green .question {
+      background: #c8e6c9;
+      box-shadow: 0 2px 8px #388e3c60;
+    }
+    .options label {
+      display: block;
+      margin-bottom: 12px;
+      font-size: 1.1em;
+      background: #fff;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      border: 2px solid #81d4fa;
+      transition: background 0.2s, border 0.2s;
+    }
+    .options label:hover {
+      background: #e3f2fd;
+      border-color: #42a5f5;
+    }
+    body.theme-green .options label {
+      border: 2px solid #388e3c;
+    }
+    body.theme-green .options label:hover {
+      background: #c8e6c9;
+      border-color: #1b5e20;
+    }
+    .result {
+      margin-top: 18px;
+      font-weight: bold;
+      font-size: 1.1em;
+      color: #1565c0;
+      background: #e3f2fd;
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 48px;
+      transition: background 0.5s, color 0.5s;
+    }
+    body.theme-green .result {
+      color: #1b5e20;
+      background: #c8e6c9;
+    }
+    .stars {
+      font-size: 2.2em;
+      color: #ffd600;
+      margin-top: 8px;
+      text-shadow: 1px 1px 6px #ffecb3;
+    }
+    .controls {
+      margin-top: 18px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    button, .theme-btn {
+      font-size: 1.1em;
+      padding: 10px 18px;
+      margin-right: 0;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #42a5f5 0%, #00bcd4 100%);
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 2px 6px #42a5f560;
+      transition: background 0.2s, transform 0.1s;
+    }
+    button:hover, .theme-btn:hover {
+      background: linear-gradient(90deg, #1565c0 0%, #00bcd4 100%);
+      transform: scale(1.05);
+    }
+    body.theme-green button, body.theme-green .theme-btn {
+      background: linear-gradient(90deg, #388e3c 0%, #1b5e20 100%);
+      box-shadow: 0 2px 6px #388e3c60;
+    }
+    body.theme-green button:hover, body.theme-green .theme-btn:hover {
+      background: linear-gradient(90deg, #1b5e20 0%, #388e3c 100%);
+    }
+    label {
+      font-size: 1em;
+      color: #1565c0;
+      margin-right: 10px;
+      transition: color 0.5s;
+    }
+    body.theme-green label {
+      color: #1b5e20;
+    }
+    select, input[type="range"] {
+      border-radius: 6px;
+      border: 1px solid #81d4fa;
+      padding: 4px 8px;
+      font-size: 1em;
+      background: #e3f2fd;
+      margin-left: 4px;
+      margin-right: 8px;
+      transition: background 0.5s, border 0.5s;
+    }
+    body.theme-green select, body.theme-green input[type="range"] {
+      border: 1px solid #388e3c;
+      background: #c8e6c9;
+    }
+    #scoreBoard {
+      margin-top: 18px;
+      font-size: 1.1em;
+      color: #fff;
+      background: #42a5f5cc;
+      border-radius: 8px;
+      padding: 10px 14px;
+      box-shadow: 0 2px 8px #90caf960;
+      display: inline-block;
+      transition: background 0.5s;
+    }
+    body.theme-green #scoreBoard {
+      background: #388e3ccc;
+      box-shadow: 0 2px 8px #a5d6a760;
+    }
+    .theme-btn {
+      margin-left: 10px;
+      margin-bottom: 10px;
+    }
+    @media (max-width: 800px) {
+      h1 { font-size: 1.4em; }
+      .question { font-size: 1em; padding: 12px; }
+      .options label { font-size: 1em; padding: 8px 10px; }
+      .result { font-size: 1em; padding: 8px; }
+      .controls { flex-direction: column; align-items: stretch; }
+      button, .theme-btn { font-size: 1em; padding: 8px 10px; }
+      #scoreBoard { font-size: 1em; padding: 8px 10px; }
+    }
+    @media (max-width: 480px) {
+      body { padding: 6px; }
+      h1 { font-size: 1.1em; }
+      .question { font-size: 0.95em; }
+      .options label { font-size: 0.95em; }
+      .result { font-size: 0.95em; }
+      .controls { gap: 6px; }
+      button, .theme-btn { font-size: 0.95em; padding: 6px 6px; }
+      #scoreBoard { font-size: 0.95em; padding: 6px 6px; }
+    }
+  </style>
+</head>
+<body>
+        <a href="index.html" style="position:absolute;left:10px;top:10px;font-size:24px;text-decoration:none;background:#eee;padding:6px 18px;border-radius:8px;color:#222;box-shadow:0 2px 6px #ccc;">← 返回選單</a>
+   <div class="container">
+<h1>🚀 錯字偵探：句型大挑戰
+  <button class="theme-btn" onclick="toggleTheme()">切換主題</button>
+</h1>
+<div class="question" id="questionText">Loading...</div>
+<div class="options" id="options"></div>
+
+<div class="controls">
+  <button onclick="submitAnswer()">提交</button>
+  <button onclick="speakCorrect()">🔊 發音</button>
+  <label>語速：
+    <input type="range" id="speedControl" min="0.1" max="1.5" step="0.1" value="0.5">
+  </label>
+  <button onclick="restartQuiz()">🔄 重新挑戰</button>
+</div>
+
+<div style="margin:10px 0;">
+  <label>選擇難度：
+    <select id="difficulty" onchange="changeDifficulty()">
+      <option value="easy">簡單</option>
+      <option value="medium">中等</option>
+      <option value="hard">困難</option>
+    </select>
+  </label>
+  <label>從第
+    <select id="startIndex" onchange="changeStartIndex()"></select>
+    題開始
+  </label>
+</div>
+
+<div class="result" id="result"></div>
+<div class="stars" id="stars"></div>
+<div id="scoreBoard">答對題數：0｜時間：<span id="timer">0</span> 秒</div>
+
+<script>
+// 題庫資料
+const questionBanks = {
+  easy: [
+    {
+      wrong: "She go to school every day.",
+      options: [
+        "She go to school every day.",
+        "She goes to school every day.",
+        "She going to school every day."
+      ],
+      answer: 1,
+      explanation: "主詞是 She（第三人稱單數），動詞要加 -s，所以是 goes。",
+      meaning: "她每天都去學校。"
+    },
+    {
+      wrong: "He don't like apples.",
+      options: [
+        "He doesn't like apples.",
+        "He don't likes apples.",
+        "He not like apples."
+      ],
+      answer: 0,
+      explanation: "第三人稱單數否定句要用 doesn't，動詞保持原形。",
+      meaning: "他不喜歡蘋果。"
+    },
+    {
+      wrong: "I goes to the store.",
+      options: [
+        "I go to the store.",
+        "I goes to the store.",
+        "I gone to the store."
+      ],
+      answer: 0,
+      explanation: "主詞是 I（第一人稱），動詞用原形 go，所以是 go。",
+      meaning: "我去商店。"
+    },
+    {
+      wrong: "They is playing soccer.",
+      options: [
+        "They are playing soccer.",
+        "They is playing soccer.",
+        "They playing soccer."
+      ],
+      answer: 0,
+      explanation: "主詞是 They（複數），動詞要用 are，所以是 are playing。",
+      meaning: "他們正在踢足球。"
+    },
+    {
+      wrong: "We doesn't have any bread.",
+      options: [
+        "We don't have any bread.",
+        "We doesn't have any bread.",
+        "We not have any bread."
+      ],
+      answer: 0,
+      explanation: "主詞是 We（第一人稱複數），否定句用 don't，動詞保持原形。",
+      meaning: "我們沒有麵包。"
+    },
+    {
+      wrong: "You was late to the meeting.",
+      options: [
+        "You were late to the meeting.",
+        "You was late to the meeting.",
+        "You late to the meeting."
+      ],
+      answer: 0,
+      explanation: "主詞是 You（第二人稱），過去式要用 were，所以是 were late。",
+      meaning: "你遲到了會議。"
+    }
+  ],
+  medium: [
+    {
+      wrong: "She don't like to play basketball.",
+      options: [
+        "She doesn't like to play basketball.",
+        "She don't likes to play basketball.",
+        "She not like to play basketball."
+      ],
+      answer: 0,
+      explanation: "第三人稱單數否定句要用 doesn't，動詞保持原形。",
+      meaning: "她不喜歡打籃球。"
+    },
+    {
+      wrong: "He go to the gym every morning.",
+      options: [
+        "He goes to the gym every morning.",
+        "He go to the gym every morning.",
+        "He going to the gym every morning."
+      ],
+      answer: 0,
+      explanation: "主詞是 He（第三人稱單數），動詞要加 -s，所以是 goes。",
+      meaning: "他每天早上去健身房。"
+    },
+    {
+      wrong: "They doesn't understand the lesson.",
+      options: [
+        "They don't understand the lesson.",
+        "They doesn't understands the lesson.",
+        "They not understand the lesson."
+      ],
+      answer: 0,
+      explanation: "主詞是 They（複數），否定句用 don't，動詞保持原形。",
+      meaning: "他們不理解這課。"
+    },
+    {
+      wrong: "We was watching a movie when you called.",
+      options: [
+        "We were watching a movie when you called.",
+        "We was watching a movie when you called.",
+        "We watching a movie when you called."
+      ],
+      answer: 0,
+      explanation: "主詞是 We（第一人稱複數），過去進行式要用 were，所以是 were watching。",
+      meaning: "我們正在看電影時你打來了。"
+    },
+    {
+      wrong: "You were study for the exam.",
+      options: [
+        "You were studying for the exam.",
+        "You were study for the exam.",
+        "You study for the exam."
+      ],
+      answer: 0,
+      explanation: "主詞是 You（第二人稱），過去進行式要用 were，所以是 were studying。",
+      meaning: "你在為考試學習。"
+    },
+    {
+      wrong: "I have saw that movie before.",
+      options: [
+        "I have seen that movie before.",
+        "I have saw that movie before.",
+        "I seen that movie before."
+      ],
+      answer: 0,
+      explanation: "完成式要用過去分詞 seen，所以是 have seen。",
+      meaning: "我以前看過那部電影。"
+    }
+  ],
+  hard: [
+    {
+      wrong: "Neither of the answers are correct.",
+      options: [
+        "Neither of the answers is correct.",
+        "Neither of the answers are correct.",
+        "Neither of the answer is correct."
+      ],
+      answer: 0,
+      explanation: "Neither...nor... 句型中，動詞要用單數形式，所以是 is correct。",
+      meaning: "兩個答案都不正確。"
+    },
+    {
+      wrong: "Each student have to submit their assignment.",
+      options: [
+        "Each student has to submit their assignment.",
+        "Each student have to submit their assignment.",
+        "Each student haves to submit their assignment."
+      ],
+      answer: 0,
+      explanation: "Each 和 Every 之類的詞，主詞為單數，所以要用 has。",
+      meaning: "每位學生都必須提交他們的作業。"
+    },
+    {
+      wrong: "The information are accurate.",
+      options: [
+        "The information is accurate.",
+        "The information are accurate.",
+        "The informations are accurate."
+      ],
+      answer: 0,
+      explanation: "Information 是不可數名詞，用單數動詞 is。",
+      meaning: "這些資訊是準確的。"
+    },
+    {
+      wrong: "If I was you, I would take the job.",
+      options: [
+        "If I were you, I would take the job.",
+        "If I was you, I would take the job.",
+        "If I am you, I would take the job."
+      ],
+      answer: 0,
+      explanation: "與現在事實相反的假設要用 were，而不是 was。",
+      meaning: "如果我是你，我會接受這份工作。"
+    },
+    {
+      wrong: "I wish you was here.",
+      options: [
+        "I wish you were here.",
+        "I wish you was here.",
+        "I wish you are here."
+      ],
+      answer: 0,
+      explanation: "表示願望的句子，假設語氣要用 were。",
+      meaning: "我希望你在這裡。"
+    },
+    {
+      wrong: "He said he seen the movie already.",
+      options: [
+        "He said he saw the movie already.",
+        "He said he seen the movie already.",
+        "He seen the movie already."
+      ],
+      answer: 0,
+      explanation: "過去式要用 saw，而不是過去分詞 seen。",
+      meaning: "他說他已經看過那部電影。"
+    }
+  ]
+};
+
+let questions = [];
+let current = 0;
+let correctCount = 0;
+let timer = 0;
+let interval;
+let selectedDifficulty = "easy";
+let startIndex = 0;
+
+function initQuiz() {
+  questions = questionBanks[selectedDifficulty];
+  fillStartIndexOptions();
+  current = startIndex;
+  correctCount = 0;
+  timer = 0;
+  clearInterval(interval);
+  interval = setInterval(() => {
+    document.getElementById("timer").textContent = ++timer;
+  }, 1000);
+  loadQuestion();
+  document.getElementById("scoreBoard").innerHTML = `答對題數：0｜時間：<span id="timer">0</span> 秒`;
+}
+
+function fillStartIndexOptions() {
+  const sel = document.getElementById("startIndex");
+  sel.innerHTML = "";
+  for (let i = 0; i < questionBanks[selectedDifficulty].length; i++) {
+    sel.innerHTML += `<option value="${i}">${i + 1}</option>`;
+  }
+  sel.value = startIndex;
+}
+
+function changeDifficulty() {
+  selectedDifficulty = document.getElementById("difficulty").value;
+  startIndex = 0;
+  initQuiz();
+}
+
+function changeStartIndex() {
+  startIndex = parseInt(document.getElementById("startIndex").value, 10);
+  initQuiz();
+}
+
+function restartQuiz() {
+  initQuiz();
+}
+
+function loadQuestion() {
+  if (current >= questions.length) return;
+  const q = questions[current];
+  document.getElementById("questionText").textContent = "❌ 錯誤句子：" + q.wrong;
+  const optsDiv = document.getElementById("options");
+  optsDiv.innerHTML = "";
+  q.options.forEach((opt, i) => {
+    optsDiv.innerHTML += `<label><input type="radio" name="option" value="${i}"> ${opt}</label>`;
+  });
+  document.getElementById("result").textContent = "";
+  document.getElementById("stars").textContent = "";
+}
+
+function submitAnswer() {
+  const selected = document.querySelector("input[name='option']:checked");
+  if (!selected) {
+    alert("請選擇一個選項！");
+    return;
+  }
+  const q = questions[current];
+  const isCorrect = Number(selected.value) === q.answer;
+  const resultDiv = document.getElementById("result");
+
+  if (isCorrect) {
+    correctCount++;
+    resultDiv.innerHTML = `✅ 正確！${q.explanation}<br>🌏 中文意思：${q.meaning}`;
+    document.getElementById("stars").textContent = "🌟";
+    playSound();
+  } else {
+    resultDiv.innerHTML = `❌ 錯誤！${q.explanation}<br>🌏 中文意思：${q.meaning}`;
+  }
+
+  current++;
+  if (current < questions.length) {
+    setTimeout(loadQuestion, 2000);
+  } else {
+    clearInterval(interval);
+    resultDiv.innerHTML += `<br><br>🎉 全部完成！你答對 ${correctCount}/${questions.length} 題，用時 ${timer} 秒。`;
+  }
+
+  document.getElementById("scoreBoard").innerHTML = `答對題數：${correctCount}｜時間：<span id="timer">${timer}</span> 秒`;
+}
+
+function speakCorrect() {
+  const q = questions[current];
+  const utterance = new SpeechSynthesisUtterance(q.options[q.answer]);
+  utterance.rate = parseFloat(document.getElementById("speedControl").value);
+  speechSynthesis.speak(utterance);
+}
+
+function playSound() {
+  const audio = new Audio("https://cdn.pixabay.com/audio/2022/03/15/audio_62d37c39d6.mp3"); // 星星音效
+  audio.play();
+}
+
+// 主題切換功能
+function setTheme(theme) {
+  document.body.classList.remove('theme-blue', 'theme-green');
+  document.body.classList.add(theme);
+  localStorage.setItem('theme', theme);
+}
+function toggleTheme() {
+  const current = document.body.classList.contains('theme-green') ? 'theme-green' : 'theme-blue';
+  setTheme(current === 'theme-blue' ? 'theme-green' : 'theme-blue');
+}
+// 預設主題
+window.onload = () => {
+  const saved = localStorage.getItem('theme');
+  setTheme(saved === 'theme-green' ? 'theme-green' : 'theme-blue');
+  initQuiz();
+};
+</script>
+
+</body>
+</html>

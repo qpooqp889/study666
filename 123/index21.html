@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>進階拉霸機 v3</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: url("bg.jpg") no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+      text-align: center;
+    }
+
+    .slot-machine {
+      max-width: 400px;
+      margin: 60px auto;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      border-radius: 20px;
+      box-shadow: 0 0 20px #000;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      background-color: #000;
+      border-radius: 10px;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 18px;
+      background: gold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    #info {
+      margin-top: 10px;
+      font-size: 18px;
+    }
+
+    #result {
+      font-size: 22px;
+      margin-top: 10px;
+    }
+
+    #coin-anim {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 40px;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .coin-fly {
+      animation: coinFly 1s ease-out forwards;
+    }
+
+    @keyframes coinFly {
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -300%) scale(0.2); opacity: 0; }
+    }
+
+    #exp-bar-container {
+  width: 100%;
+  background: #333;
+  border-radius: 8px;
+  margin-top: 12px;
+  height: 20px;
+  overflow: hidden;
+}
+#exp-bar {
+  height: 100%;
+  background: limegreen;
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.coin-fall {
+  position: absolute;
+  font-size: 28px;
+  animation: fall 1s ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes fall {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(150px); opacity: 0; }
+}
+
+  #coin-balance {
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+
+    #coin-animation-container {
+      position: absolute;
+      top: 50px;
+      left: 0;
+      right: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .coin {
+      font-size: 24px;
+      color: gold;
+      animation: floatUp 1.2s ease-out forwards;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0.9;
+      text-shadow: 1px 1px 2px #000;
+    }
+
+        .coin-img {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  animation: drop-img 1.5s ease-out forwards;
+  pointer-events: none;
+  z-index: 100;
+}
+    @keyframes floatUp {
+      0% {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+      100% {
+        transform: translateX(-50%) translateY(-80px);
+        opacity: 0;
+      }
+    }
+
+    
+@keyframes drop-img {
+  0% { transform: translateY(-60px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(140px) rotate(360deg); opacity: 0; }
+}
+
+#exp-text {
+
+  font-size: 16px;
+  color: #fff;
+}
+
+
+  </style>
+</head>
+<body>
+          <a href="index.html" style="position:absolute;left:10px;top:10px;font-size:24px;text-decoration:none;background:#eee;padding:6px 18px;border-radius:8px;color:#222;box-shadow:0 2px 6px #ccc;">← 返回選單</a>
+   <div class="container">
+  <div class="slot-machine">
+    <h1>🎰 拉霸機</h1>
+      
+    <!-- 獎勵說明按鈕 -->
+    <button onclick="document.getElementById('rewardModal').style.display='block'">獎勵說明</button>
+    <!-- 彈跳視窗 (Modal) -->
+    <div id="rewardModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);">
+      <div style="background:#fff;color:#222;max-width:340px;margin:100px auto;padding:24px 18px;border-radius:12px;box-shadow:0 4px 24px #0008;position:relative;">
+      <h2 style="margin-top:0;">獎勵說明</h2>
+      <ul style="text-align:left;line-height:1.7;font-size:17px;padding-left:1.2em;">
+        <li>每次轉動消耗 <b>10金幣</b></li>
+        <li>三個相同符號可獲得獎勵：</li>
+        <ul>
+        <li>🍒 100、🍋 200、🍊 300、⭐ 800、💎 1500、🎁 5000 金幣</li>
+        </ul>
+        <li>若有 <b>🎁</b> 且不是三個 <b>🎁</b> 其他兩個相同，獲得獎勵</li>
+        <li>每3次中獎升級，等級越高稀有符號機率提升</li>
+      </ul>
+      <button onclick="document.getElementById('rewardModal').style.display='none'" style="margin-top:10px;background:#eee;color:#222;">關閉</button>
+      </div>
+    </div>
+    <div>
+🎮 今日已玩：<span id="play-count">0</span>/100
+
+    </div>
+    <canvas id="slotCanvas" width="300" height="300"></canvas>
+
+      
+    <div id="info">
+      💰 金幣：<span id="coins">0</span>｜🧬 等級：<span id="level">1</span>
+      <br>
+
+      <div id="exp-bar-container">
+      <div id="exp-bar"></div>
+      </div>
+  <div id="exp-text">經驗值：0 / 100</div>
+    <audio id="success-sound" src="./Generated/y2405.mp3"></audio>
+      ⏳ 下次補幣：<span id="coin-timer">--:--</span>
+    </div>
+          <div id="coin-animation-container"></div>
+
+    <button onclick="startSpin()">開始！</button>
+    <div id="result"></div>
+        
+
+  </div>
+
+
+
+
+  <script>
+    const canvas = document.getElementById("slotCanvas");
+    const ctx = canvas.getContext("2d");
+    const symbols = ["🍒", "🍋", "🍊", "⭐", "💎", "🎁","🐷"]; // 🎁 = 雙倍
+    const baseWeights = [100, 50, 10, 1, 0.6, 0.1,0.1]; // 基本權重，數字越大機率越高
+
+    let coins = parseInt(localStorage.getItem("coins") || "100");
+    let level = parseInt(localStorage.getItem("level") || "1");
+    let wins = parseInt(localStorage.getItem("wins") || "0");
+
+    const coinDisplay = document.getElementById("coins");
+    const levelDisplay = document.getElementById("level");
+    const resultText = document.getElementById("result");
+    const coinAnim = document.getElementById("coin-anim");
+    const timerDisplay = document.getElementById("coin-timer");
+
+    const reelCount = 3;
+    const reelWidth = canvas.width / reelCount;
+    const fontSize = 48;
+    const spinDuration = 1000;
+    let reels = [];
+
+    const spinSound = document.getElementById("spinSound");
+
+    const COIN_INTERVAL = 360; // 秒
+    const COIN_AMOUNT = 10;
+
+    let today = new Date().toISOString().split("T")[0]; // 格式：2025-07-08
+let playCount = parseInt(localStorage.getItem("playCount") || "0");
+let lastPlayDate = localStorage.getItem("lastPlayDate") || today;
+
+if (lastPlayDate !== today) {
+  playCount = 0;
+  lastPlayDate = today;
+  localStorage.setItem("playCount", "0");
+  localStorage.setItem("lastPlayDate", today);
+}
+
+
+    let exp = parseInt(localStorage.getItem("exp") || "0");
+const expBar = document.getElementById("exp-bar");
+
+
+function updateExpBar() {
+  const maxExp = level * 100;
+  const percent = Math.min(100, (exp / maxExp) * 100);
+  expBar.style.width = percent + "%";
+    const expText = document.getElementById("exp-text");
+  expText.textContent = `經驗值：${exp} / ${maxExp}`;
+}
+
+
+    function updateUI() {
+      coinDisplay.textContent = coins;
+      levelDisplay.textContent = level;
+       localStorage.setItem("coins", coins);
+  localStorage.setItem("level", level);
+  localStorage.setItem("wins", wins);
+  localStorage.setItem("exp", exp);
+  document.getElementById("play-count").textContent = playCount;
+  updateExpBar();
+    }
+
+    function addExp(amount) {
+  exp += amount;
+  const expNeeded = level * 100;
+  if (exp >= expNeeded) {
+    exp -= expNeeded;
+    level++;
+    resultText.textContent += ` ⬆️ 等級提升！`;
+  }
+  updateUI();
+}
+
+
+
+// 等級獲得符號的加權索引
+    function getWeightedSymbolIndex() {
+      const weights = baseWeights.map(w => w + level * 0.1);
+      const total = weights.reduce((a, b) => a + b, 0);
+      let r = Math.random() * total;
+      for (let i = 0; i < weights.length; i++) {
+        if (r < weights[i]) return i;
+        r -= weights[i];
+      }
+      return 0;
+    }
+
+    function initReels() {
+      reels = [];
+      for (let i = 0; i < reelCount; i++) {
+        reels.push({
+          symbolIndex: getWeightedSymbolIndex(),
+          offset: Math.random() * 500
+        });
+      }
+    }
+
+    function drawReels() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.font = `${fontSize}px serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (let i = 0; i < reelCount; i++) {
+        const x = reelWidth * i + reelWidth / 2;
+        const symbol = symbols[reels[i].symbolIndex];
+        ctx.fillText(symbol, x, canvas.height / 2);
+      }
+    }
+
+    function animateReels(startTime, callback) {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      for (let i = 0; i < reelCount; i++) {
+        if (elapsed < spinDuration + reels[i].offset) {
+          reels[i].symbolIndex = getWeightedSymbolIndex();
+        }
+      }
+      drawReels();
+      if (elapsed < spinDuration + 500) {
+        requestAnimationFrame(() => animateReels(startTime, callback));
+      } else {
+        callback();
+      }
+    }
+
+
+
+     function checkResult() {
+  const indices = reels.map(r => r.symbolIndex);
+  const symbolsShown = indices.map(i => symbols[i]);
+
+  const isJackpot = indices.every(i => i === indices[0]);
+  const symbolRewards = {
+    "🍒": 100,
+    "🍋": 200,
+    "🍊": 300,
+    "⭐": 800,
+    "💎": 1500,
+    "🎁": 5000,
+    "🐷": 10000,
+  };
+
+  let reward = 0;
+  let matchedSymbol = null;
+
+  if (isJackpot) {
+    matchedSymbol = symbolsShown[0];
+    reward = symbolRewards[matchedSymbol] || 50;
+    if (matchedSymbol !== "🎁" && symbolsShown.includes("🎁")) reward *= 2;
+  } else {
+    // 判斷是否兩個一樣 + 🎁
+    const counts = {};
+    for (let sym of symbolsShown) {
+      counts[sym] = (counts[sym] || 0) + 1;
+    }
+
+    for (let sym in counts) {
+      if (sym !== "🎁" && counts[sym] === 2 && counts["🎁"] === 1) {
+        matchedSymbol = sym;
+        reward = symbolRewards[sym] || 50;
+        break;
+      }
+    }
+  }
+
+  //新增金幣雨動畫
+  if (reward > 0) {
+    coins += reward;
+    wins++;
+    addExp(20);
+    resultText.textContent = `🎉 中獎！你獲得 ${reward} 金幣 (${symbolsShown.join(" ")})`;
+           playSuccessSound();
+           showCoinAnimation(reward);
+           dropCoins(reward);
+  } else {
+    addExp(5);
+    resultText.textContent = `😢 沒中～ (${symbolsShown.join(" ")})`;
+  }
+
+  updateUI();
+}
+
+
+    function startSpin() {
+      const btn = document.querySelector("button[onclick='startSpin()']");
+  btn.disabled = true;
+  setTimeout(() => (btn.disabled = false), spinDuration + 600);
+      if (coins < 10) {
+        resultText.textContent = "💸 金幣不足，無法轉動。";
+        return;
+      }
+
+        // 限制每天最多 100 次
+  if (playCount >= 100) {
+    resultText.textContent = "⛔ 今日遊玩次數已達上限（100 次）。請明天再來！";
+    return;
+  }
+
+  playCount++;
+  localStorage.setItem("playCount", playCount);
+  localStorage.setItem("lastPlayDate", today);
+
+      coins -= 5 * level  // 每次轉動消耗 10 金幣，隨等級提升
+      
+      resultText.textContent = "🎲 轉動中...";
+      updateUI();
+      initReels();
+      animateReels(Date.now(), checkResult);
+    }
+
+    function getNextCoinTime() {
+      return parseInt(localStorage.getItem("nextCoinTime") || "0");
+    }
+
+    function setNextCoinTime(ts) {
+      localStorage.setItem("nextCoinTime", ts);
+    }
+
+    function addCoinsIfReady() {
+      const now = Math.floor(Date.now() / 1000);
+      let nextTime = getNextCoinTime();
+      if (!nextTime || now >= nextTime) {
+        coins += COIN_AMOUNT;
+        resultText.textContent = `💰 自動補幣 +${COIN_AMOUNT}！`;
+        //更新localStorage金幣數量
+        localStorage.setItem("coins", coins);
+        nextTime = now + COIN_INTERVAL;
+        setNextCoinTime(nextTime);
+        updateUI();
+      }
+    }
+
+    function updateCoinTimer() {
+      const now = Math.floor(Date.now() / 1000);
+      const nextTime = getNextCoinTime();
+      let remain = nextTime - now;
+      if (!nextTime || remain <= 0) {
+        timerDisplay.textContent = "00:00";
+      } else {
+        const min = String(Math.floor(remain / 60)).padStart(2, "0");
+        const sec = String(remain % 60).padStart(2, "0");
+        timerDisplay.textContent = `${min}:${sec}`;
+      }
+    }
+
+    //金幣音效
+    function playSuccessSound() {
+      document.getElementById("success-sound").play();
+    }
+
+//金碧落下
+ function showCoinAnimation(amount) {
+      const container = document.getElementById("coin-animation-container");
+      for (let i = 0; i < 6; i++) {
+        const coin = document.createElement("div");
+        coin.className = "coin";
+        coin.textContent = `+${amount}`;
+        coin.style.left = `${40 + Math.random() * 20}%`;
+        coin.style.animationDuration = `${0.8 + Math.random() * 0.6}s`;
+        container.appendChild(coin);
+        setTimeout(() => coin.remove(), 1500);
+      }
+    }
+
+    function dropCoins(count = 10) {
+const container = document.getElementById("coin-animation-container");
+  for (let i = 0; i < count; i++) {
+    const img = document.createElement("img");
+    img.src = "./Generated/coin.png"; // 替換為你的金幣圖片路徑
+    img.className = "coin-img";
+    img.style.left = `${Math.random() * 100}%`;
+    img.style.top = `-${Math.random() * 60}px`;
+    img.style.animationDelay = `${i * 0.1}s`;
+    container.appendChild(img);
+    setTimeout(() => img.remove(), 1800);
+  }
+    }
+
+    // 每秒檢查自動補幣與倒數
+    setInterval(() => {
+      addCoinsIfReady();
+      updateCoinTimer();
+    }, 1000);
+
+    // 初始化補幣時間
+    if (!getNextCoinTime()) {
+      setNextCoinTime(Math.floor(Date.now() / 1000) + COIN_INTERVAL);
+    }
+    updateCoinTimer();
+
+    initReels();
+    drawReels();
+    updateUI();
+  </script>
+</body>
+</html>

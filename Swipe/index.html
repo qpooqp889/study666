@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>下落式 + Swipe 範例（直版） - 自動生成譜面 + 音樂視覺化</title>
+  <meta name="description" content="加入自動譜面生成功能（FFT/能量峰值檢測）與節拍同步背景動畫的 HTML5 範例。" />
+  <style>
+    :root{--bg:#071019;--accent:#ffd166;--accent2:#ff6b6b}
+    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,'Noto Sans TC',sans-serif;background:var(--bg);color:#fff}
+    .wrap{display:flex;flex-direction:column;height:100vh;gap:8px;padding:8px;box-sizing:border-box}
+    header{display:flex;justify-content:space-between;align-items:center}
+    header h1{font-size:16px;margin:0}
+    #game{flex:1;display:flex;flex-direction:column;align-items:stretch}
+    .canvas-wrap{position:relative;flex:1;border-radius:12px;overflow:hidden;background:linear-gradient(180deg,#071019 0%, #071a2a 100%)}
+    canvas{width:100%;height:100%;display:block}
+    .controls{display:flex;gap:8px;align-items:center}
+    button{background:#1f2937;color:white;border:0;padding:8px 12px;border-radius:8px}
+    select,input[type=file]{background:#111827;color:white;border-radius:8px;padding:6px}
+    .hud{position:absolute;left:0;right:0;top:8px;display:flex;justify-content:space-between;padding:0 12px}
+    .score{background:#00000055;padding:6px 10px;border-radius:8px}
+    .judge-line{position:absolute;left:0;right:0;height:6px;bottom:110px;pointer-events:none}
+    footer{display:flex;justify-content:space-between;align-items:center}
+    .floating{position:absolute;pointer-events:none}
+    .pop{position:absolute;font-weight:700;text-shadow:0 2px 6px rgba(0,0,0,0.6)}
+    .judgeText{position:absolute;left:50%;transform:translateX(-50%);bottom:150px;font-size:20px;font-weight:800;text-shadow:0 6px 14px rgba(0,0,0,0.6)}
+    /* waveform */
+    .waveform{position:absolute;left:0;right:0;top:0;height:70px;pointer-events:none;opacity:0.9}
+    .beat-dot{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--accent);opacity:0.9;transform:translateX(-50%);top:34px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>下落式 + Swipe 範例（直版）</h1>
+      <div class="controls">
+        <input id="audioFile" type="file" accept="audio/*">
+        <button id="btnLoadDemo">載入示範音樂</button>
+        <button id="btnAnalyze">自動生成譜面</button>
+        <button id="btnPlay">播放</button>
+        <button id="btnPause">暫停</button>
+        <select id="difficulty">
+          <option value="easy">Easy</option>
+          <option value="normal" selected>Normal</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
+    </header>
+
+    <div id="game">
+      <div class="canvas-wrap">
+        <canvas id="c"></canvas>
+        <div class="waveform" id="waveform"></div>
+        <div class="hud">
+          <div class="score">分數: <span id="score">0</span> | Combo: <span id="combo">0</span></div>
+          <div class="note-preview">提示：上傳音檔 → 自動生成譜面 → 播放</div>
+        </div>
+        <div class="judge-line"><div class="bar"></div></div>
+        <div id="judgeText" class="judgeText"></div>
+        <div id="popContainer" class="floating"></div>
+      </div>
+      <footer>
+        <div class="legend">操作：Tap / Hold（長按） / Swipe（滑動）</div>
+        <div style="font-size:12px;opacity:.9">自動譜面：能量峰值檢測（簡易版），背景節拍閃爍</div>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    // ======= 基本畫布 =======
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    let W, H, DPR = window.devicePixelRatio || 1;
+    function resize(){ W = canvas.clientWidth; H = canvas.clientHeight; canvas.width = Math.floor(W * DPR); canvas.height = Math.floor(H * DPR); ctx.resetTransform && ctx.resetTransform(); ctx.scale(DPR, DPR); }
+    window.addEventListener('resize', resize);
+
+    const judgeYFromBottom = 110;
+
+    // ===== WebAudio & Analysis =====
+    let audioCtx = null; let audioBuffer = null; let sourceNode = null; let audioStartAt = 0; let audioPausedAt = 0; let isAudioPlaying = false;
+
+    async function createAudioContext(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
+
+    const audioFileInput = document.getElementById('audioFile');
+    audioFileInput.addEventListener('change', async (e)=>{ const f = e.target.files[0]; if(!f) return; const array = await f.arrayBuffer(); const ac = await createAudioContext(); audioBuffer = await ac.decodeAudioData(array.slice(0)); console.log('音檔載入完成', audioBuffer.duration+'s'); prepareWaveform(audioBuffer); resetTiming(); });
+
+    document.getElementById('btnLoadDemo').addEventListener('click', async ()=>{ try{ const ac = await createAudioContext(); const url = 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_2d33b3e5f3.mp3?filename=happy-groovy-11153.mp3'; const resp = await fetch(url); const array = await resp.arrayBuffer(); audioBuffer = await ac.decodeAudioData(array.slice(0)); console.log('示範音檔載入', audioBuffer.duration+'s'); prepareWaveform(audioBuffer); resetTiming(); }catch(err){ console.warn('示範載入失敗', err);} });
+
+    function resetTiming(){ stopAudio(); audioStartAt=0; audioPausedAt=0; isAudioPlaying=false; }
+    function playAudio(offset=0){ if(!audioBuffer) { console.warn('沒有音檔'); return; } const ac = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx = ac; sourceNode = ac.createBufferSource(); sourceNode.buffer = audioBuffer; sourceNode.connect(ac.destination); audioStartAt = ac.currentTime - offset; sourceNode.start(0, offset); isAudioPlaying = true; sourceNode.onended = ()=>{ isAudioPlaying=false; } }
+    function stopAudio(){ try{ if(sourceNode) sourceNode.stop(); }catch(e){} sourceNode=null; isAudioPlaying=false; audioPausedAt=0; }
+    function pauseAudio(){ if(!audioCtx) return; audioPausedAt = getAudioTime(); stopAudio(); }
+    function getAudioTime(){ if(!audioBuffer) return 0; if(isAudioPlaying && audioCtx) return audioCtx.currentTime - audioStartAt; return audioPausedAt; }
+
+    // ===== 自動生成譜面（能量峰值檢測） =====
+   async function analyzeAudioBufferForBeatsSpectralFlux(buffer, sensitivity=1.0){
+  const sampleRate = buffer.sampleRate;
+  const channelData = buffer.numberOfChannels > 0 ? buffer.getChannelData(0) : new Float32Array(0);
+  const fftSize = 1024;
+  const hopSize = fftSize / 2;
+  // 使用 FFT 庫 (browser內建無，但這裡用簡單 DFT 範例或需自己帶 FFT lib)
+  // 這裡用簡單 fftjs 庫範例，實際可用自己 FFT 實作或其他 lib
+  // 因沒外部依賴，這裡直接用簡化版本：僅做幅度計算（慢）
+
+  // 分析頻譜幅度
+  function fftMagnitude(frame){
+    const N = frame.length;
+    const mags = new Float32Array(N/2);
+    for(let k=0; k<N/2; k++){
+      let re=0, im=0;
+      for(let n=0; n<N; n++){
+        const angle = (2*Math.PI*k*n)/N;
+        re += frame[n] * Math.cos(angle);
+        im -= frame[n] * Math.sin(angle);
+      }
+      mags[k] = Math.sqrt(re*re + im*im);
+    }
+    return mags;
+  }
+
+  // 切分音訊、計算頻譜差
+  const frames = [];
+  for(let i=0; i+fftSize < channelData.length; i+=hopSize){
+    frames.push(channelData.slice(i, i+fftSize));
+  }
+  const mags = frames.map(fftMagnitude);
+  const flux = new Float32Array(mags.length);
+  for(let i=1; i<mags.length; i++){
+    let sum=0;
+    for(let k=0; k<mags[i].length; k++){
+      const diff = mags[i][k] - mags[i-1][k];
+      sum += diff > 0 ? diff : 0;
+    }
+    flux[i] = sum;
+  }
+
+  // 動態門檻計算
+  const thresholdWindow = 16;
+  const pruned = new Float32Array(flux.length);
+  for(let i=0; i<flux.length; i++){
+    let start = Math.max(0, i-thresholdWindow);
+    let end = Math.min(flux.length-1, i+thresholdWindow);
+    let localMean=0;
+    for(let j=start; j<=end; j++){
+      localMean += flux[j];
+    }
+    localMean /= (end-start+1);
+    let threshold = localMean * sensitivity;
+    pruned[i] = flux[i] > threshold ? flux[i] - threshold : 0;
+  }
+
+  // 峰值檢測
+  const beats = [];
+  for(let i=1; i<pruned.length-1; i++){
+    if(pruned[i] > pruned[i-1] && pruned[i] > pruned[i+1] && pruned[i] > 0){
+      const time = (i*hopSize) / sampleRate;
+      beats.push(time);
+    }
+  }
+
+  console.log('頻譜流峰值偵測節拍數:', beats.length);
+  return beats;
+}
+
+
+    // 按鈕觸發分析並生成譜面
+    document.getElementById('btnAnalyze').addEventListener('click', async ()=>{
+      if(!audioBuffer){ alert('請先載入音檔再自動生成譜面'); return; }
+      const beats = await analyzeAudioBufferForBeatsSpectralFlux(audioBuffer);
+      generateChartFromBeats(beats);
+    });
+
+    // 產生簡易譜面：將節拍分配到軌道並加入 swipe/hold 機率
+    function generateChartFromBeats(beats){ chart.length=0; notes.length=0; for(let i=0;i<beats.length;i++){ const t=beats[i]; const lane = i%3; const r=Math.random(); if(r<0.08){ chart.push({time:t, lane, type:'hold', duration:0.8}); } else if(r<0.28){ const dirs=['left','right','up','down']; chart.push({time:t, lane, type:'swipe', dir:dirs[Math.floor(Math.random()*4)]}); } else { chart.push({time:t, lane, type:'tap'}); } }
+      // rebuild notes state
+      for(let i=0;i<chart.length;i++){ notes.push({...chart[i], id:i, hit:false, holding:false}); }
+      // show simple beat markers on waveform
+      renderBeatMarkers(beats);
+    }
+
+    // ===== waveform 繪製（簡單 canvas-snapshot 到 div） =====
+    const waveformEl = document.getElementById('waveform');
+    function prepareWaveform(buffer){ waveformEl.innerHTML = '';
+      const width = Math.max(600, Math.floor(window.innerWidth*1.5));
+      const height = 70; const canvasW = document.createElement('canvas'); canvasW.width = width; canvasW.height = height; const wctx = canvasW.getContext('2d');
+      const data = buffer.getChannelData(0);
+      const step = Math.floor(data.length / width);
+      wctx.fillStyle = 'rgba(255,255,255,0.04)'; wctx.fillRect(0,0,width,height);
+      wctx.fillStyle = '#9be7ff';
+      for(let i=0;i<width;i++){ let sum=0; for(let j=0;j<step;j++){ const v = data[(i*step + j)|0]; sum += Math.abs(v); } const v = sum/step; const h = v * height * 2; wctx.fillRect(i, (height-h)/2, 1, h); }
+      waveformEl.appendChild(canvasW);
+    }
+
+    function renderBeatMarkers(beats){ // place small dots over waveform proportionally
+      waveformEl.querySelectorAll('.beat-dot').forEach(n=>n.remove()); if(!audioBuffer) return; const dur=audioBuffer.duration; const w = waveformEl.firstChild.width; for(const t of beats){ const x = Math.floor((t/dur)*w); const dot = document.createElement('div'); dot.className='beat-dot'; dot.style.left = ((x / w) * 100) + '%'; waveformEl.appendChild(dot); }
+    }
+
+    // ===== 原有遊戲邏輯（note state, input, 判定） =====
+    const chart = []; // will be filled by generateChartFromBeats
+    const notes = []; // state
+    const perfectWindow = 0.08; const goodWindow = 0.18;
+    let score = 0, combo = 0; const scoreEl = document.getElementById('score'); const comboEl = document.getElementById('combo');
+    const popContainer = document.getElementById('popContainer'); const judgeTextEl = document.getElementById('judgeText');
+    const lanes = 3; const activeHolds = new Map();
+
+    // input handlers (same as before)
+    canvas.addEventListener('touchstart', onTouchStart, {passive:false});
+    canvas.addEventListener('touchmove', onTouchMove, {passive:false});
+    canvas.addEventListener('touchend', onTouchEnd, {passive:false});
+    function onTouchStart(e){ e.preventDefault(); for(const t of Array.from(e.changedTouches)){ t._start={x:t.clientX,y:t.clientY}; t._time = performance.now(); const cand = findClosestNote(getAudioTime()); if(cand && cand.type==='hold' && !cand.hit){ if(Math.abs(cand.time - getAudioTime()) <= goodWindow*1.5){ cand.holding = true; activeHolds.set(t.identifier, cand.id); } } } }
+    function onTouchMove(e){ e.preventDefault(); }
+    function onTouchEnd(e){ e.preventDefault(); for(const t of Array.from(e.changedTouches)){ const start = t._start || {x:0,y:0}; const dx = (t.clientX - start.x); const dy = (t.clientY - start.y); const dist = Math.hypot(dx,dy); const timeNow = getAudioTime(); const holdNoteId = activeHolds.get(t.identifier); if(holdNoteId != null){ const note = notes.find(n=>n.id===holdNoteId); if(note && note.holding){ const releaseTime = timeNow; if(releaseTime >= note.time + (note.duration||0) - 0.12){ finalizeHit(note,'Perfect'); } else { finalizeHit(note,'Miss'); } } activeHolds.delete(t.identifier); continue; } const cand = findClosestNote(timeNow); if(!cand) continue; if(dist > 30){ const angle = Math.atan2(dy,dx)*180/Math.PI; const dir = Math.abs(angle)<45?'right':(Math.abs(angle)>135?'left':(angle<0?'up':'down')); if(cand.type==='swipe') finalizeHitWithInput(cand,'swipe',dir,timeNow); } else { if(cand.type==='tap') finalizeHitWithInput(cand,'tap',null,timeNow); } } }
+    // mouse fallback
+    let mouseStart=null; canvas.addEventListener('mousedown', e=>{ mouseStart={x:e.clientX,y:e.clientY,time:performance.now()}; });
+    canvas.addEventListener('mouseup', e=>{ const dx=e.clientX-mouseStart.x; const dy=e.clientY-mouseStart.y; const dist=Math.hypot(dx,dy); const timeNow=getAudioTime(); const cand=findClosestNote(timeNow); if(!cand) return; if(dist>20){ const angle=Math.atan2(dy,dx)*180/Math.PI; const dir=Math.abs(angle)<45?'right':(Math.abs(angle)>135?'left':(angle<0?'up':'down')); if(cand.type==='swipe') finalizeHitWithInput(cand,'swipe',dir,timeNow);} else { if(cand.type==='tap') finalizeHitWithInput(cand,'tap',null,timeNow);} });
+
+    function findClosestNote(timeNow){ let best=null, bestAbs=Infinity; for(const n of notes){ if(n.hit) continue; const d=Math.abs(n.time - timeNow); if(d<=goodWindow && d<bestAbs){ best=n; bestAbs=d; } } return best; }
+    function finalizeHitWithInput(note,inputType,dir,timeNow){ if(note.hit) return; if(note.type==='swipe' && inputType!=='swipe') return; if(note.type==='tap' && inputType!=='tap') return; const diff = Math.abs(note.time - timeNow); let judge='Miss'; if(diff<=perfectWindow) judge='Perfect'; else if(diff<=goodWindow) judge='Good'; finalizeHit(note,judge); }
+    function finalizeHit(note,judge){ if(note.hit) return; note.hit=true; note.holding=false; if(judge==='Miss'){ combo=0; showJudge('Miss',note); } else { combo++; score += (judge==='Perfect'?100:60) + combo*2; showJudge(judge,note); if(navigator.vibrate) navigator.vibrate(20); } scoreEl.textContent=score; comboEl.textContent=combo; }
+
+    function showJudge(text,note){ judgeTextEl.textContent=text; judgeTextEl.style.opacity='1'; setTimeout(()=> judgeTextEl.style.opacity='0',600); const laneW = W/lanes; const laneX = (note.lane + 0.5)*laneW; const judgeY=H-judgeYFromBottom; const pop=document.createElement('div'); pop.className='pop'; pop.style.left=(laneX-20)+'px'; pop.style.top=(judgeY-40)+'px'; pop.style.color = text==='Perfect'? 'var(--accent)' : text==='Good'? '#9be7ff' : 'var(--accent2)'; pop.style.fontSize='18px'; pop.textContent = text==='Perfect'?'+100': text==='Good'?'+60':'-'; popContainer.appendChild(pop); const start=performance.now(); function anim(){ const t=performance.now(); const p=(t-start)/700; if(p>1){ pop.remove(); return; } pop.style.transform = `translateY(${ -p*60 }px) scale(${1 - p*0.15})`; pop.style.opacity = String(1 - p); requestAnimationFrame(anim); } requestAnimationFrame(anim); }
+
+    // ===== 節拍資料（由分析產生） =====
+    let beatTimes = []; // seconds
+
+    // ===== 背景節拍閃爍（根據 beatTimes） =====
+    function getPulseAlpha(timeNow){ if(!beatTimes || beatTimes.length===0) return 0; let alpha=0; const window=0.22; for(const b of beatTimes){ const d=Math.abs(b - timeNow); if(d <= window){ alpha = Math.max(alpha, 1 - (d/window)); } } return Math.min(1, alpha); }
+
+    // ===== 繪製（包含脈動背景） =====
+    function draw(){ ctx.clearRect(0,0,W,H); const timeNow = getAudioTime(); // background gradient
+      const pulse = getPulseAlpha(timeNow);
+      const baseGrad = ctx.createLinearGradient(0,0,0,H);
+      baseGrad.addColorStop(0, mix('#071019','#0b2a4a', pulse*0.6)); baseGrad.addColorStop(1, mix('#071a2a','#123e6b', pulse*0.4)); ctx.fillStyle = baseGrad; ctx.fillRect(0,0,W,H);
+      // subtle radial flash
+      if(pulse>0.02){ ctx.globalAlpha = pulse * 0.35; const r = 120 + pulse*220; const gx = ctx.createRadialGradient(W/2,H/2,20,W/2,H/2,r); gx.addColorStop(0, 'rgba(255,210,102,0.12)'); gx.addColorStop(1,'rgba(255,210,102,0)'); ctx.fillStyle = gx; ctx.fillRect(0,0,W,H); ctx.globalAlpha =1; }
+
+      // lanes
+      const laneW = W/lanes; for(let i=0;i<lanes;i++){ const x=i*laneW; ctx.fillStyle='rgba(255,255,255,0.02)'; ctx.fillRect(x,0,laneW,H); ctx.fillStyle='rgba(255,255,255,0.02)'; ctx.fillRect(x+laneW-1,0,1,H); }
+      // judge line
+      const judgeY = H - judgeYFromBottom; ctx.fillStyle='rgba(255,255,255,0.06)'; ctx.fillRect(0,judgeY-2,W,4);
+
+      const approachSec = 2.0;
+      for(const n of notes){ const dt = n.time - timeNow; const progress = 1 - (dt/approachSec); if(dt > approachSec || dt < -1.0) continue; const laneX = (n.lane + 0.5)*laneW; const startY = -40; const y = Math.max(startY, startY + progress*(judgeY - startY)); if(n.type==='tap'){ ctx.beginPath(); ctx.arc(laneX,y,24,0,Math.PI*2); ctx.fillStyle = n.hit? 'rgba(120,120,120,0.6)' : 'rgba(255,209,102,0.95)'; ctx.fill(); ctx.closePath(); }
+        else if(n.type==='hold'){ const len = Math.max(24, (n.duration||0.5) * (judgeY - startY) / approachSec); const headY = y - len/2; ctx.fillStyle = n.hit? 'rgba(120,120,120,0.6)': 'rgba(103,178,255,0.9)'; ctx.fillRect(laneX-18, headY, 36, len); ctx.beginPath(); ctx.arc(laneX, headY, 18,0,Math.PI*2); ctx.fill(); ctx.closePath(); if(n.holding){ const held = Math.min(1, Math.max(0, (getAudioTime() - n.time) / (n.duration||0.001))); ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fillRect(laneX-18, headY + len*(1-held), 36, len*held); } }
+        else if(n.type==='swipe'){ ctx.save(); ctx.translate(laneX,y); ctx.rotate((performance.now()/1000 + n.id)% (Math.PI*2) * 0.3); ctx.fillStyle = n.hit? 'rgba(140,140,140,0.6)' : 'rgba(255,120,120,0.95)'; ctx.fillRect(-26,-26,52,52); ctx.fillStyle='#111'; ctx.font='12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; const arrow = n.dir==='left'? '◀' : n.dir==='right'? '▶' : n.dir==='up'? '▲' : '▼'; ctx.fillText(arrow,0,0); ctx.restore(); }
+      }
+    }
+
+    function mix(a,b,t){ // hex color mix
+      const ah = a.replace('#',''); const bh = b.replace('#',''); const ar = parseInt(ah.substring(0,2),16), ag=parseInt(ah.substring(2,4),16), ab=parseInt(ah.substring(4,6),16); const br=parseInt(bh.substring(0,2),16), bg=parseInt(bh.substring(2,4),16), bb=parseInt(bh.substring(4,6),16); const rr=Math.round(ar*(1-t)+br*t), rg=Math.round(ag*(1-t)+bg*t), rb=Math.round(ab*(1-t)+bb*t); return `rgb(${rr},${rg},${rb})`; }
+
+    function raf(t){ draw(); requestAnimationFrame(raf); }
+    requestAnimationFrame(raf);
+
+    // ===== play controls =====
+    document.getElementById('btnPlay').addEventListener('click', async ()=>{ await createAudioContext(); const cur = getAudioTime(); if(!isAudioPlaying){ playAudio(cur); } });
+    document.getElementById('btnPause').addEventListener('click', ()=>{ pauseAudio(); });
+
+    // ===== init =====
+    resize(); console.log('已啟用自動譜面生成與節拍閃爍');
+  </script>
+</body>
+</html>

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<title>便利商店小老闆 - 金幣動畫版</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  body {
+    font-family: "微軟正黑體", sans-serif;
+    background: #fff9e6;
+    text-align: center;
+    margin: 10px;
+  }
+  #status {
+    font-size: 18px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  #coins {
+    font-weight: bold;
+    transition: color 0.5s ease;
+  }
+  #customerQueue {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin: 20px 0;
+    font-size: 40px;
+    user-select: none;
+  }
+  #items > div {
+    margin-bottom: 15px;
+  }
+  button {
+    padding: 10px 20px;
+    font-size: 18px;
+    border-radius: 8px;
+    background-color: #ffcc00;
+    border: none;
+    cursor: pointer;
+    margin: 0 5px;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    user-select: none;
+  }
+  button:hover:not(:disabled) {
+    background-color: #ffaa00;
+    transform: scale(1.05);
+  }
+  button:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+  button:disabled {
+    background-color: #ddd;
+    cursor: not-allowed;
+    color: #666;
+  }
+  #order {
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+  canvas {
+    background: #f2f2f2;
+    border: 2px solid #ccc;
+    margin-top: 20px;
+    border-radius: 10px;
+  }
+  /* 金幣浮動動畫樣式 */
+  .coin-float {
+    position: absolute;
+    font-weight: bold;
+    font-size: 22px;
+    pointer-events: none;
+    animation: floatUp 1s ease forwards;
+  }
+  @keyframes floatUp {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-50px);
+    }
+  }
+</style>
+</head>
+<body>
+            <a href="../index.html" style="position:absolute;left:10px;top:10px;font-size:24px;text-decoration:none;background:#eee;padding:6px 18px;border-radius:8px;color:#222;box-shadow:0 2px 6px #ccc;">← 返回選單</a>
+
+<h1>便利商店小老闆</h1>
+
+<div id="status">
+  現有金幣：
+  <span id="coins">0</span> |
+  時間：
+  <span id="timer">60</span> 秒 |
+  分數：
+  <span id="highscore">0</span>
+</div>
+
+<div class="queue" id="customerQueue"></div>
+
+<div id="order">當前點餐：<strong id="currentOrder">？</strong></div>
+
+<div id="items"></div>
+
+<canvas id="sceneCanvas" width="400" height="200"></canvas>
+
+<script>
+  const products = [
+    { name: ' 🍙御飯糰', stock: 0, cost: 10, price: 11 },
+    { name: '☕咖啡', stock: 0, cost: 45, price: 46 },
+    { name: '🍛咖哩飯', stock: 0, cost: 70, price: 71 },
+    { name: '🥤可樂', stock: 0, cost: 8, price: 9 },
+    { name: '🍩甜甜圈', stock: 0, cost: 15, price: 16 },
+    { name: '🍌香蕉', stock: 0, cost: 10, price: 11 }
+  ];
+
+  let coins = parseInt(localStorage.getItem('coins') || '0');
+  let highscore = parseInt(localStorage.getItem('highscore') || '0');
+  let timeLeft = 60;
+  let currentOrder = '';
+  let customers = [];
+
+  const queueDiv = document.getElementById('customerQueue');
+  const orderText = document.getElementById('currentOrder');
+  const coinText = document.getElementById('coins');
+  const timerText = document.getElementById('timer');
+  const highscoreText = document.getElementById('highscore');
+  const itemButtons = document.getElementById('items');
+  const statusDiv = document.getElementById('status');
+  const canvas = document.getElementById('sceneCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // 顧客表情對應文字
+  const moodEmoji = {
+    happy: '😄',
+    angry: '😠',
+    neutral: '😐'
+  };
+
+  function updateCoins(amount) {
+    if (amount === 0) return;
+    coins += amount;
+    if (coins < 0) coins = 0;
+    localStorage.setItem('coins', coins);
+    coinText.textContent = coins;
+
+    // 顯示動畫數字
+    showCoinAnimation(amount);
+
+    // 金幣數字顏色閃爍
+    coinText.style.color = amount > 0 ? 'green' : 'red';
+    setTimeout(() => {
+      coinText.style.color = 'black';
+    }, 800);
+  }
+
+  // 浮動金幣數字動畫
+  function showCoinAnimation(amount) {
+    const anim = document.createElement('span');
+    anim.className = 'coin-float';
+    anim.style.color = amount > 0 ? 'green' : 'red';
+    anim.textContent = (amount > 0 ? '+' : '') + amount;
+    // 定位到金幣數字旁
+    const rect = coinText.getBoundingClientRect();
+    anim.style.left = rect.left + rect.width + 'px';
+    anim.style.top = (rect.top - 20) + 'px';
+    anim.style.position = 'fixed';
+    document.body.appendChild(anim);
+
+    anim.addEventListener('animationend', () => {
+      anim.remove();
+    });
+  }
+
+  function drawScene() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillRect(0, 160, canvas.width, 40);
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(50, 110, 300, 50);
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px 微軟正黑體';
+    ctx.fillText('便利商店櫃檯', 140, 145);
+  }
+
+//   function updateStockDisplay() {
+//     itemButtons.innerHTML = '';
+//     products.forEach(p => {
+//       const div = document.createElement('div');
+
+//       const btnSell = document.createElement('button');
+//       btnSell.textContent = `賣出 ${p.name} (${p.stock})`;
+//       btnSell.disabled = p.stock <= 0;
+//       btnSell.onclick = () => sellProduct(p.name);
+
+//       const btnRestock = document.createElement('button');
+//       btnRestock.textContent = `補貨 ${p.name} (費用: ${p.cost}金幣)`;
+//       btnRestock.disabled = coins < p.cost;
+//       btnRestock.onclick = () => restockProduct(p.name);
+
+//       div.appendChild(btnSell);
+//       div.appendChild(btnRestock);
+//       itemButtons.appendChild(div);
+//     });
+//   }
+
+function shuffleArray(arr) {
+  return arr
+    .map(value => ({ value, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map(({ value }) => value);
+}
+
+function updateStockDisplay() {
+  itemButtons.innerHTML = '';
+  const shuffled = shuffleArray(products);
+  shuffled.forEach(p => {
+    const div = document.createElement('div');
+
+    const btnSell = document.createElement('button');
+    // btnSell.textContent = `● 賣出 ${p.name} (${p.stock})`;
+        btnSell.textContent = `● 賣出 ${p.name} `;
+
+    // btnSell.disabled = p.stock <= 0;
+    btnSell.onclick = () => sellProduct(p.name);
+
+    const btnRestock = document.createElement('button');
+    btnRestock.textContent = `● 補貨 ${p.name} (費用: ${p.cost}金幣)`;
+    btnRestock.disabled = coins < p.cost;
+    btnRestock.onclick = () => restockProduct(p.name);
+
+    div.appendChild(btnSell);
+    div.appendChild(btnRestock);
+    itemButtons.appendChild(div);
+  });
+}
+
+
+  function spawnCustomers() {
+    customers = Array.from({ length: 3 }, () => {
+      const p = products[Math.floor(Math.random() * products.length)].name;
+      return { want: p, mood: 'neutral' };
+    });
+    renderCustomers();
+    currentOrder = customers[0].want;
+    orderText.textContent = currentOrder;
+  }
+
+  function renderCustomers() {
+    queueDiv.innerHTML = '';
+    customers.forEach((c, i) => {
+      const span = document.createElement('span');
+      span.className = 'customer-img';
+      span.textContent = moodEmoji[c.mood] || '😐';
+      span.title = `顧客${i + 1}: ${c.want}`;
+      queueDiv.appendChild(span);
+    });
+  }
+
+  function sellProduct(productName) {
+    const product = products.find(p => p.name === productName);
+    if (!product || product.stock <= 0) return;
+
+    product.stock--;
+
+    if (productName === currentOrder) {
+      updateCoins(product.price);
+      customers[0].mood = 'happy';
+    } else {
+      updateCoins(-5);
+      customers[0].mood = 'angry';
+    }
+
+    updateStockDisplay();
+    renderCustomers();
+
+    setTimeout(() => {
+      customers.shift();
+      customers.push({ want: products[Math.floor(Math.random() * products.length)].name, mood: 'neutral' });
+      currentOrder = customers[0].want;
+      orderText.textContent = currentOrder;
+      renderCustomers();
+    }, 600);
+  }
+
+  function restockProduct(productName, amount = 1) {
+    const product = products.find(p => p.name === productName);
+    if (!product) return;
+
+    const totalCost = product.cost * amount;
+    if (coins < totalCost) {
+      alert('金幣不足，無法補貨');
+      return;
+    }
+
+    product.stock += amount;
+    updateCoins(-totalCost);
+    updateStockDisplay();
+  }
+
+  function countdown() {
+    if (timeLeft > 0) {
+      timeLeft--;
+      timerText.textContent = timeLeft;
+    } else {
+      clearInterval(timer);
+      if (coins > highscore) {
+        localStorage.setItem('highscore', coins);
+        highscoreText.textContent = coins;
+      }
+      alert(`⏰ 遊戲結束！你賺了 ${coins} 金幣！`);
+    }
+  }
+
+  drawScene();
+  updateStockDisplay();
+  spawnCustomers();
+  coinText.textContent = coins;
+  highscoreText.textContent = highscore;
+  const timer = setInterval(countdown, 1000);
+</script>
+
+</body>
+</html>

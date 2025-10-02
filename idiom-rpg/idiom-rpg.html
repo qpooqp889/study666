@@ -1,0 +1,612 @@
+                          
+                           0
+                           
+                           
+                           
+                           0<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>成語勇者 RPG</title>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      background: #fffef7;
+      margin: 0;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+      margin: 10px 0;
+    }
+
+    .battlefield {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 500px;
+      margin: auto;
+    }
+
+    .character {
+      text-align: center;
+      width: 40%;
+      position: relative;
+    }
+
+    .character .emoji {
+      font-size: 4rem;
+    }
+
+    .hp-bar {
+      height: 16px;
+      background: #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .bar {
+      height: 100%;
+      transition: width 0.3s;
+    }
+
+    .player-bar { background-color: #4caf50; }
+    .enemy-bar { background-color: #f44336; }
+
+    .effect {
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 2rem;
+      animation: fly 0.8s ease-out;
+      pointer-events: none;
+    }
+
+    @keyframes fly {
+      0% { opacity: 1; transform: translate(-50%, 0); }
+      100% { opacity: 0; transform: translate(-50%, -60px); }
+    }
+
+    .meaning, .selected, .actions, .log {
+      text-align: center;
+      max-width: 500px;
+      margin: 10px auto;
+    }
+
+    .btn-area {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      max-width: 500px;
+      margin: auto;
+            font-size: 2.5em;
+
+    }
+
+    button {
+      padding: 10px 16px;
+      font-size: 2.5em;
+      border-radius: 10px;
+      cursor: pointer;
+      border: none;
+      background-color: #ffd966;
+    }
+
+    .selected-word {
+      font-size: 2.5em;
+      min-height: 30px;
+    }
+
+    .log {
+      background: #f0f0f0;
+      font-size: 0.9em;
+      border-radius: 8px;
+      padding: 10px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    @media (max-width: 480px) {
+      .character .emoji { font-size: 3rem; }
+    }
+
+    button {
+  padding: 10px 16px;
+  font-size: 1.2em;
+  border-radius: 10px;
+  cursor: pointer;
+  border: none;
+  background-color: #ffd966;
+  min-width: 60px;
+  flex: 1 1 40%;
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 6px;
+  }
+
+  button {
+    font-size: 1em;
+    padding: 8px;
+  }
+
+  .selected-word {
+    font-size: 2.5em;
+  }
+
+  .meaning {
+    font-size: 1.5em;
+  }
+
+  .actions {
+    font-size: 1em;
+  }
+}
+
+  </style>
+</head>
+<body>
+            <a href="../index.html" style="position:absolute;left:10px;top:10px;font-size:24px;text-decoration:none;background:#eee;padding:6px 18px;border-radius:8px;color:#222;box-shadow:0 2px 6px #ccc;">← 返回選單</a>
+
+  <button onclick="openDex()" style="position:absolute;right:10px;top:10px;font-size:24px;text-decoration:none;background:#eee;padding:6px 18px;border-radius:8px;color:#222;box-shadow:0 2px 6px #ccc;">📖 圖鑑</button>
+<h1>成語勇者 RPG</h1>
+  <!-- 玩家+怪物圖鑑 Modal  用list表示，上面有top btn 可以切換-->  
+  <!-- Modal 圖鑑 -->
+  <div id="dexModal" style="display:none;position:fixed;z-index:9999;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);">
+    <div style="background:#fff;border-radius:16px;max-width:380px;margin:60px auto;padding:24px 16px;position:relative;box-shadow:0 4px 24px #888;">
+      <button onclick="closeDex()" style="position:absolute;right:12px;top:12px;font-size:20px;background:#eee;border:none;border-radius:6px;padding:2px 10px;cursor:pointer;">✖</button>
+      <div style="display:flex;justify-content:center;gap:10px;margin-bottom:18px;">
+        <button id="dexTabPlayer" onclick="showDexTab('player')" style="font-size:1.1em;padding:6px 18px;border-radius:8px;border:none;background:#ffd966;cursor:pointer;">玩家職業</button>
+        <button id="dexTabEnemy" onclick="showDexTab('enemy')" style="font-size:1.1em;padding:6px 18px;border-radius:8px;border:none;background:#eee;cursor:pointer;">怪物圖鑑</button>
+      </div>
+      <div id="dexPlayerList"></div>
+      <div id="dexEnemyList" style="display:none;"></div>
+    </div>
+  </div>
+  <script>
+    const playerList = [
+  { name: "村人", playicon: "🧒" },        // Lv.1
+  { name: "初階伐木工", playicon: "🪓" },   // Lv.2
+  { name: "獵人", playicon: "🏹" },        // Lv.3
+  { name: "劍士", playicon: "🗡️" },       // Lv.4
+  { name: "魔法學徒", playicon: "🧙‍♂️" },  // Lv.5
+  { name: "弓箭手", playicon: "🧔" },      // Lv.6
+  { name: "盜賊", playicon: "👨‍🦱" },        // Lv.7
+  { name: "火焰術士", playicon: "🔥" },     // Lv.8
+  { name: "聖騎士", playicon: "🛡️" },      // Lv.9
+  { name: "黑暗巫師", playicon: "🧛‍♂️" },  // Lv.10
+  { name: "獸人戰士", playicon: "🦍" },     // Lv.11
+  { name: "影武者", playicon: "👨‍🎤" },       // Lv.12
+  { name: "龍騎士", playicon: "🐉" },       // Lv.13
+  { name: "召喚師", playicon: "📜" },       // Lv.14
+  { name: "戰場指揮官", playicon: "🎖️" },  // Lv.15
+  { name: "聖光牧師", playicon: "✨" },     // Lv.16
+  { name: "元素大師", playicon: "🌪️" },     // Lv.17
+  { name: "英雄勇者", playicon: "🦸‍♂️" },   // Lv.18
+  { name: "傳說劍豪", playicon: "⚔️" },     // Lv.19
+  { name: "勇者之王", playicon: "👑" }      // Lv.20
+];
+
+const enemyList = [
+  { name: "鬼怪", emoji: "👹" },
+  { name: "天狗", emoji: "👺" },
+  { name: "幽靈", emoji: "👻" },
+  { name: "骷髏", emoji: "💀" },
+  { name: "外星人", emoji: "👽" },
+  { name: "機器人", emoji: "🤖" },
+  { name: "電腦病毒", emoji: "👾" },
+  { name: "吸血蝙蝠", emoji: "🦇" },
+  { name: "巨龍", emoji: "🐉" },
+  { name: "暴龍", emoji: "🦖" },
+  { name: "神龍", emoji: "🐲" },
+  { name: "玄武", emoji: "🐢" },
+  { name: "大猩猩", emoji: "🦍" },
+  { name: "獅王", emoji: "🦁" },
+  { name: "虎王", emoji: "🐯" },
+  { name: "龍王", emoji: "🐉" },
+  { name: "章魚怪", emoji: "🐙" },
+  { name: "巨蟹怪", emoji: "🦀" },
+  { name: "鱷魚怪", emoji: "🐊" },
+  { name: "魔王", emoji: "👑" }
+];
+  function openDex() {
+    document.getElementById('dexModal').style.display = 'block';
+    showDexTab('player');
+  }
+  function closeDex() {
+    document.getElementById('dexModal').style.display = 'none';
+  }
+  function showDexTab(tab) {
+    document.getElementById('dexTabPlayer').style.background = tab==='player' ? '#ffd966' : '#eee';
+    document.getElementById('dexTabEnemy').style.background = tab==='enemy' ? '#ffd966' : '#eee';
+    document.getElementById('dexPlayerList').style.display = tab==='player' ? '' : 'none';
+    document.getElementById('dexEnemyList').style.display = tab==='enemy' ? '' : 'none';
+  }
+  // 初始化圖鑑內容
+  (function(){
+    // 玩家職業
+    let html = '<ul style="list-style:none;padding:0;margin:0;max-height:260px;overflow-y:auto;">';
+    playerList.forEach((p,i)=>{
+      html += `<li style="padding:6px 0;display:flex;align-items:center;gap:12px;">
+      <span style="font-size:2em;">${p.playicon}</span>
+      <span>Lv.${i === 0 ? 1 : (i)} - ${p.name}</span>
+      </li>`;
+    });
+    html += '</ul>';
+    document.getElementById('dexPlayerList').innerHTML = html;
+
+    // 怪物圖鑑
+    let html2 = '<ul style="list-style:none;padding:0;margin:0;max-height:260px;overflow-y:auto;">';
+    enemyList.forEach((e,i)=>{
+      html2 += `<li style="padding:6px 0;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:2em;">${e.emoji}</span>
+     
+         <span>Lv.${i === 0 ? 1 : (i * 5)} - ${e.name}</span>
+      </li>`;
+    });
+    html2 += '</ul>';
+    document.getElementById('dexEnemyList').innerHTML = html2;
+    })();
+  </script>
+ 
+  
+  <div class="battlefield">
+<div class="character" id="playerBox">
+
+  <div class="emoji" id="playerIcon">🧒</div>
+  <div class="hp-bar"><div id="playerHP" class="bar player-bar"></div></div>
+  <div>Lv.<span id="level">1</span> - <span id="playerName">村人</span></div>
+</div>
+
+
+    <div class="character" id="enemyBox">
+      <div class="emoji" id="enemyEmoji"></div>
+      <div class="hp-bar"><div id="enemyHP" class="bar enemy-bar"></div></div>
+   <div> Lv.<span id="enemyLevel">1</span> -<span id="enemyrName">怪物</span></div>
+    </div>
+  </div>
+
+  <div class="meaning" id="meaning" style="font-size: 2em;">載入中...</div>
+
+  <div class="btn-area" id="btnArea"></div>
+
+  <div class="selected">
+    <h3>你選擇的字：</h3>
+    <div id="selected" class="selected-word"></div>
+  </div>
+<div class="actions">
+  ⏳ 時間：<span id="timer">60</span> 秒
+  <br />
+  <div class="actions">
+    
+    <button onclick="submitAnswer()">✅ 確認送出</button>
+    <button onclick="resetSelection()">🔁 重選</button>
+    <button onclick="useHint()">💡 提示成語（-50金幣）</button>
+
+  </div>
+
+    <span style="font-size:1.2em;">💰金幣：<span id="coinCount">0</span></span>  
+  <div class="log" id="battleLog"></div>
+
+<script>
+
+let coins = parseInt(localStorage.getItem('coins')) || 0;
+
+//更新金幣畫面函式
+function updateCoinsUI() {
+  document.getElementById("coinCount").textContent = coins;
+}
+
+
+
+let current = {};
+let selectedChars = [];
+let logBox = document.getElementById("battleLog");
+
+
+
+function getEnemyEmoji(level) {
+  const idx = Math.min(Math.floor((level - 1) / 5), enemyList.length - 1);
+  return enemyList[idx].emoji;
+}
+
+function getEnemyName(level) {
+  const idx = Math.min(Math.floor((level - 1) / 5), enemyList.length - 1);
+  return enemyList[idx].name;
+}
+
+
+
+
+let player = JSON.parse(localStorage.getItem("playerData")) || {
+  level: 1,
+  exp: 0,
+  atk: 10,
+  maxHp: 100,
+  hp: 100,
+};
+
+let enemy = JSON.parse(localStorage.getItem("enemyData")) || {
+  level: 1,
+  maxHp: 100,
+  hp: 100,
+  atk: 20,
+};
+
+let timer = 60;
+let timerInterval;
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timer = 60;
+  document.getElementById("timer").textContent = timer;
+  timerInterval = setInterval(() => {
+    timer--;
+    document.getElementById("timer").textContent = timer;
+    if (timer <= 0) {
+      clearInterval(timerInterval);
+      log("⏰ 時間到！你錯過了機會！");
+      player.hp -= 20;
+      updateUI();
+      savePlayer();
+      submitAnswer();// 強制提交答案
+      loadNewQuestion();
+    }
+  }, 1000);
+}
+
+function useHint() {
+  if (coins < 50) {
+    log("❌ 金幣不足，無法使用提示！");
+    return;
+  }
+
+  coins -= 50;
+  saveCoins();
+  log(`💡 提示使用成功！正確答案是：「${current.idiom}」`);
+
+  // 顯示提示（例如顯示正確成語）
+  const hint = document.createElement("div");
+  hint.textContent = `✅ 正確成語是：「${current.idiom}」`;
+  hint.style.color = "blue";
+  hint.style.marginTop = "10px";
+  document.querySelector(".meaning").appendChild(hint);
+}
+
+let battleHistory = JSON.parse(localStorage.getItem("battleHistory")) || [];
+
+function log(message) {
+  const item = document.createElement("div");
+  item.textContent = message;
+  logBox.prepend(item);
+  battleHistory.unshift({ time: Date.now(), message });
+  battleHistory = battleHistory.slice(0, 50); // 最多保留50筆
+  localStorage.setItem("battleHistory", JSON.stringify(battleHistory));
+}
+//角色查找函式：
+function getPlayerByLevel(level) {
+  if (level < 1) return playerList[0];
+  if (level > playerList.length) return playerList[playerList.length - 1];
+  return playerList[level - 1];
+}
+
+function updateUI() {
+   document.getElementById("level").textContent = player.level;
+  document.getElementById("playerHP").style.width = (player.hp / player.maxHp * 100) + "%";
+  document.getElementById("enemyHP").style.width = (enemy.hp / enemy.maxHp * 100) + "%";
+document.getElementById("enemyLevel").textContent = enemy.level;
+
+// 更新玩家名稱和表情
+  const playerBox = document.getElementById("playerBox");
+  playerBox.querySelector(".emoji").textContent = playerList[player.level - 1].playicon;
+  playerBox.querySelector(".emoji").title = playerList[player.level - 1].name;
+  document.getElementById("playerName").textContent = playerList[player.level - 1].name;
+
+  // 更新怪物名稱和等級
+  document.getElementById("enemyLevel").textContent = enemy.level;
+  document.getElementById("enemyrName").textContent = getEnemyName(enemy.level);
+  document.getElementById("enemyEmoji").textContent = getEnemyEmoji(enemy.level);
+  document.getElementById("enemyBox").querySelector(".emoji").textContent = getEnemyEmoji(enemy.level);
+  document.getElementById("enemyBox").querySelector(".emoji").title = getEnemyName(enemy.level);  
+
+
+
+
+  updateCoinsUI();
+}
+
+function loadNewQuestion() {
+        document.querySelector(".actions button").disabled = false; // 重新啟用送出按鈕
+
+  selectedChars = [];
+  document.getElementById("selected").textContent = "";
+current = idioms[Math.floor(Math.random() * idioms.length)];
+  document.getElementById("meaning").textContent = "❓成語意思：" + current.meaning;
+
+  const btnArea = document.getElementById("btnArea");
+  btnArea.innerHTML = "";
+
+  let shuffled = current.options.slice().sort(() => Math.random() - 0.5);
+  shuffled.forEach(char => {
+    const btn = document.createElement("button");
+    btn.textContent = char;
+    btn.onclick = () => selectChar(char, btn);
+    btnArea.appendChild(btn);
+  });
+
+  startTimer();
+}
+
+function selectChar(char, btn) {
+  if (selectedChars.length >= 4) return;
+  selectedChars.push(char);
+  btn.disabled = true;
+  //按鈕顏色變紅色
+  btn.style.backgroundColor = "#ff6666";
+  document.getElementById("selected").textContent = selectedChars.join("");
+}
+
+function resetSelection() {
+  selectedChars = [];
+  document.getElementById("selected").textContent = "";
+  // 重置按鈕顏色
+  document.querySelectorAll("#btnArea button").forEach(btn => {
+    btn.disabled = false;
+    btn.style.backgroundColor = "#ffd966"; // 恢復原來的顏色
+  });
+  document.querySelectorAll("#btnArea button").forEach(btn => btn.disabled = false);
+}
+
+function showEffect(targetBox, emoji) {
+  const effect = document.createElement("div");
+  effect.className = "effect";
+  effect.textContent = emoji;
+  targetBox.appendChild(effect);
+  setTimeout(() => effect.remove(), 800);
+}
+
+function log(message) {
+  const item = document.createElement("div");
+  item.textContent = message;
+  logBox.prepend(item);
+}
+
+function levelUp() {
+  const needExp = player.level * 10 ;
+  if (player.exp >= needExp) {
+    player.level++;
+    player.exp = 0;
+    player.maxHp += 20;
+    player.hp = player.maxHp;
+    player.atk += 5;
+    log(`🆙 升級！現在 Lv.${player.level}，攻擊力提升至 ${player.atk}`);
+  }
+}
+
+function savePlayer() {
+  localStorage.setItem("playerData", JSON.stringify(player));
+}
+function saveEnemy() {
+  localStorage.setItem("enemyData", JSON.stringify(enemy));
+}
+
+function submitAnswer() {
+  if (selectedChars.length !== 4) {
+    log("⚠️ 請選滿四個字！");
+    return;
+  }
+
+  const answer = selectedChars.join("");
+  const playerBox = document.getElementById("playerBox");
+  const enemyBox = document.getElementById("enemyBox");
+
+  if (answer === current.idiom) {
+         coins += 10; // 答對 +10
+        //確定送出反灰
+      document.querySelector(".actions button").disabled = true;
+
+    showEffect(enemyBox, "⚡️");
+    setTimeout(() => {
+      enemy.hp -= player.atk;
+      //打勾圖案
+      showEffect(playerBox, "✅");
+      log(`✅答對：「${current.idiom}」`);
+      log(`🧙‍♂️ 攻擊成功，造成 ${player.atk} 傷害！👹剩下 ${Math.max(enemy.hp, 0)} HP`);
+      log(`🧙‍♂️ 獲得 10 金幣！`);
+      if (enemy.hp <= 0) {
+  log("🎉 怪物被擊敗了！再獲得 100 金幣！");
+  coins += 100;
+  player.exp += 10 * enemy.level; // 獲得經驗值;
+  
+  levelUp();
+
+  // ⬆️ 怪物變強
+  enemy.level++;
+  enemy.maxHp += 30;
+  enemy.hp = enemy.maxHp;
+  enemy.atk += 5;
+localStorage.setItem("enemyData", JSON.stringify(enemy));
+
+  log(`⚠️ 新的怪物出現！Lv.${enemy.level}，HP: ${enemy.maxHp}，ATK: ${enemy.atk}`);
+    localStorage.setItem("enemyData", JSON.stringify(enemy)); // ⬅️ 儲存
+
+      }
+      savePlayer();
+      //紀錄ememy資料
+      saveEnemy();
+      updateUI();
+      loadNewQuestion();
+    }, 800);
+  } else {
+      showEffect(playerBox, "❌");
+    showEffect(playerBox, "🔥");
+    setTimeout(() => {
+player.hp -= enemy.atk;
+     
+      log(`❌ 你選擇的成語是：「${answer}」`);
+      //正確答案是
+      log(`✅正確答案是：「${current.idiom}」`);
+      log(`👹 怪物攻擊！`);
+      log(`正確答案是：「${current.idiom}」`);
+log(`👹 怪物反擊造成 ${enemy.atk} 傷害！你剩下 ${Math.max(player.hp, 0)} HP`);
+
+      coins = Math.max(0, coins - 10);
+log(`👹 你受傷了，失去 10 金幣！`);
+      if (player.hp <= 0) {
+         coins = Math.max(0, coins - 100);
+        log("💀 玩家被擊敗，重新開始！損失 100金幣");
+       
+        player.hp = player.maxHp; //補滿血量重新開始
+      }
+       saveCoins();
+      // savePlayer();
+      saveEnemy();
+      updateUI();
+      loadNewQuestion();
+    }, 800);
+  }
+}
+
+function saveCoins() {
+  localStorage.setItem("coins", coins);
+  updateCoinsUI();
+}
+
+let idioms = [];
+window.onload = async () => {
+  try {
+    const res = await fetch("idioms.json");
+    idioms = await res.json();
+    updateUI();
+    loadNewQuestion();
+    // 讀取playerData 資料
+    player = JSON.parse(localStorage.getItem("playerData")) || player;
+    enemy = JSON.parse(localStorage.getItem("enemyData")) || enemy;
+    // 顯示歷史紀錄
+    battleHistory.forEach(h => {
+      const item = document.createElement("div");
+      item.textContent = new Date(h.time).toLocaleTimeString() + " - " + h.message;
+      logBox.appendChild(item);
+    });
+  } catch (err) {
+    alert("無法載入成語資料，請檢查 idioms.json 是否存在！");
+    console.error(err);
+  }
+};
+
+
+
+
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>圈地原型 V1</title>
+  <style>
+    canvas { background: #111; display: block; margin: auto; }
+  </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const player = {
+  x: 100,
+  y: 100,
+  size: 4,
+  speed: 2,
+  isDrawing: false,
+  trail: []
+};
+
+const keys = {};
+
+document.addEventListener("keydown", e => {
+  keys[e.key] = true;
+  if (e.key === " ") player.isDrawing = true;  // 空白鍵開始圈地
+});
+
+document.addEventListener("keyup", e => {
+  keys[e.key] = false;
+  if (e.key === " ") {
+    player.isDrawing = false;                 // 放開空白鍵結束圈地
+    player.trail = [];                        // 清除繪線記錄（簡化）
+  }
+});
+
+function movePlayer() {
+  if (keys["ArrowUp"]) player.y -= player.speed;
+  if (keys["ArrowDown"]) player.y += player.speed;
+  if (keys["ArrowLeft"]) player.x -= player.speed;
+  if (keys["ArrowRight"]) player.x += player.speed;
+
+  // 限制邊界
+  player.x = Math.max(0, Math.min(canvas.width, player.x));
+  player.y = Math.max(0, Math.min(canvas.height, player.y));
+
+  if (player.isDrawing) {
+    player.trail.push({ x: player.x, y: player.y });
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 畫 trail 線
+  if (player.trail.length > 1) {
+    ctx.strokeStyle = "cyan";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(player.trail[0].x, player.trail[0].y);
+    for (let point of player.trail) {
+      ctx.lineTo(point.x, point.y);
+    }
+    ctx.stroke();
+  }
+
+  // 畫玩家
+  ctx.fillStyle = "lime";
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function gameLoop() {
+  movePlayer();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>

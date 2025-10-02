@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>彈出單字 Moon Blaster</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #111;
+      color: #fff;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    canvas {
+      background: #111;
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+      height: auto;
+      touch-action: none;
+    }
+    h2 {
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+        <a href="../index.html" style="position:absolute;left:10px;top:10px;font-size:24px;text-decoration:none;background:#eee;padding:6px 18px;border-radius:8px;color:#222;box-shadow:0 2px 6px #ccc;">← 返回選單</a>
+
+    <div id="coinBar">
+  <div id="coinIcon">💰</div>
+  <div id="coinDisplay">0</div>
+</div>
+<label for="speedRange">發音速度: <span id="speedValue">0.5</span></label>
+<input type="range" id="speedRange" min="0.1" max="2" step="0.1" value="0.5" />
+
+  <h2 id="questionTitle">請找出：月亮 的英文</h2>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const questionTitle = document.getElementById("questionTitle");
+
+const questionSet = [
+  { question: "月亮", answer: "moon", options: ["moon", "sun", "star", "cloud"] },
+  { question: "太陽", answer: "sun", options: ["sun", "rain", "snow", "sky"] },
+  { question: "貓", answer: "cat", options: ["dog", "cat", "cow", "pig"] },
+  { question: "蘋果", answer: "apple", options: ["apple", "grape", "banana", "peach"] },
+  { question: "狗", answer: "dog", options: ["dog", "cat", "mouse", "bird"] },
+  { question: "魚", answer: "fish", options: ["fish", "frog", "duck", "turtle"] },
+  { question: "鳥", answer: "bird", options: ["cat", "bird", "lion", "wolf"] },
+  { question: "樹", answer: "tree", options: ["tree", "flower", "grass", "leaf"] },
+  { question: "車", answer: "car", options: ["bus", "car", "bike", "truck"] },
+  { question: "水", answer: "water", options: ["water", "milk", "juice", "tea"] },
+  { question: "書", answer: "book", options: ["pen", "book", "notebook", "paper"] },
+  { question: "電腦", answer: "computer", options: ["computer", "phone", "camera", "tablet"] },
+  { question: "家", answer: "house", options: ["house", "hotel", "school", "shop"] },
+  { question: "雨", answer: "rain", options: ["sun", "rain", "snow", "cloud"] },
+  { question: "雪", answer: "snow", options: ["snow", "rain", "fog", "wind"] },
+  { question: "花", answer: "flower", options: ["flower", "grass", "tree", "leaf"] },
+  { question: "草", answer: "grass", options: ["grass", "leaf", "flower", "tree"] },
+  { question: "電話", answer: "phone", options: ["phone", "computer", "radio", "tv"] },
+  { question: "椅子", answer: "chair", options: ["table", "chair", "bed", "sofa"] },
+  { question: "沙發", answer: "sofa", options: ["chair", "sofa", "bed", "couch"] },
+  { question: "床", answer: "bed", options: ["bed", "table", "chair", "desk"] },
+  { question: "電視", answer: "tv", options: ["tv", "radio", "computer", "phone"] },
+  { question: "冰箱", answer: "fridge", options: ["fridge", "oven", "microwave", "toaster"] },
+  { question: "洗衣機", answer: "washing machine", options: ["washing machine", "dryer", "dishwasher", "vacuum cleaner"] },
+  { question: "廚房", answer: "kitchen", options: ["kitchen", "bathroom", "living room", "bedroom"] },
+  { question: "浴室", answer: "bathroom", options: ["bathroom", "kitchen", "living room", "bedroom"] },
+  { question: "書房", answer: "study room", options: ["study room", "bedroom", "living room", "kitchen"] },
+  { question: "辦公室", answer: "office", options: ["office", "school", "library", "store"] },  
+  { question: "桌子", answer: "table", options: ["chair", "table", "desk", "bench"] },
+    { question: "門", answer: "door", options: ["door", "window", "gate", "fence"] },
+    { question: "窗戶", answer: "window", options: ["window", "door", "wall", "roof"] },
+    { question: "牆壁", answer: "wall", options: ["wall", "floor", "ceiling", "roof"] },
+    { question: "屋頂", answer: "roof", options: ["roof", "wall", "floor", "ceiling"] },
+    { question: "地板", answer: "floor", options: ["floor", "ceiling", "wall", "roof"] },
+    { question: "燈", answer: "light", options: ["light", "lamp", "bulb", "candle"] },
+    { question: "電梯", answer: "elevator", options: ["elevator", "staircase", "escalator", "ramp"] },
+    { question: "樓梯", answer: "stairs", options: ["stairs", "elevator", "escalator", "ramp"] },
+    { question: "電梯間", answer: "elevator shaft", options: ["elevator shaft", "staircase", "escalator", "ramp"] },
+    { question: "走廊", answer: "hallway", options: ["hallway", "corridor", "passageway", "aisle"] },
+    { question: "走道", answer: "aisle", options: ["aisle", "hallway", "corridor", "passageway"] },
+    { question: "天花板", answer: "ceiling", options: ["ceiling", "floor", "wall", "roof"] },
+    { question: "地毯", answer: "carpet", options: ["carpet", "rug", "mat", "tile"] },
+    { question: "瓷磚", answer: "tile", options: ["tile", "marble", "granite", "stone"] },
+    { question: "木地板", answer: "wood floor", options: ["wood floor", "laminate floor", "vinyl floor", "tile floor"] },
+    { question: "鋪地板", answer: "flooring", options: ["flooring", "carpet", "tile", "wood"] },
+    { question: "牆紙", answer: "wallpaper", options: ["wallpaper", "paint", "plaster", "paneling"] },
+    { question: "油漆", answer: "paint", options: ["paint", "stain", "varnish", "sealant"] },
+    { question: "裝飾", answer: "decoration", options: ["decoration", "ornament", "accessory", "furnishing"] },
+    { question: "裝飾品", answer: "ornament", options: ["ornament", "decoration", "accessory", "furnishing"] },
+    { question: "配件", answer: "accessory", options: ["accessory", "decoration", "ornament", "furnishing"] },
+    { question: "傢俱", answer: "furniture", options: ["furniture", "fixture", "appliance", "equipment"] },
+    { question: "裝置", answer: "fixture", options: ["fixture", "furniture", "appliance", "equipment"] },
+    { question: "電器", answer: "appliance", options: ["appliance", "device", "gadget", "tool"] },
+    { question: "設備", answer: "equipment", options: ["equipment", "gear", "machinery", "tools"] },
+    { question: "工具", answer: "tool", options: ["tool", "instrument", "implement", "utensil"] },
+    { question: "樂器", answer: "instrument", options: ["instrument", "tool", "device", "gadget"] },
+    { question: "餐具", answer: "utensil", options: ["utensil", "cutlery", "silverware", "tableware"] },
+    { question: "餐具", answer: "cutlery", options: ["cutlery", "utensil", "silverware", "tableware"] },
+    { question: "餐具", answer: "silverware", options: ["silverware", "utensil", "cutlery", "tableware"] },
+    { question: "餐具", answer: "tableware", options: ["tableware", "utensil", "cutlery", "silverware"] },
+    { question: "杯子", answer: "cup", options: ["cup", "glass", "mug", "bottle"] },
+    { question: "玻璃杯", answer: "glass", options: ["glass", "cup", "mug", "bottle"] },
+    { question: "馬克杯", answer: "mug", options: ["mug", "cup", "glass", "bottle"] },
+    { question: "瓶子", answer: "bottle", options: ["bottle", "cup", "glass", "mug"] },
+    { question: "碗碟", answer: "dishware", options: ["dishware", "tableware", "utensil", "cutlery"] },
+    { question: "餐盤", answer: "plate", options: ["plate", "bowl", "cup", "glass"] },
+    { question: "碗碟組合", answer: "dinnerware set", options: ["dinnerware set", "dish set", "table setting set"] },
+    { question: "餐具組合", answer: "cutlery set", options: ["cutlery set","silverware set","utensil set","flatware set"] },
+    { question: "餐具", answer: "flatware", options: ["flatware", "cutlery", "silverware", "utensil"] },
+    { question: "餐巾", answer: "napkin", options: ["napkin", "towel", "cloth", "paper"] },    
+    { question: "桌布", answer: "tablecloth", options: ["tablecloth", "placemat", "table runner", "table mat"] },   
+    { question: "餐桌", answer: "dining table", options: ["dining table", "coffee table", "side table", "console table"] },
+    { question: "椅子", answer: "chair", options: ["chair", "stool", "bench", "armchair"] },
+    { question: "沙發", answer: "sofa", options: ["sofa", "couch", "loveseat", "sectional"] },
+    { question: "床", answer: "bed", options: ["bed", "mattress", "bunk bed", "loft bed"] },
+    { question: "書桌", answer: "desk", options: ["desk", "workstation", "vanity", "console"] },
+    { question: "書櫃", answer: "bookshelf", options: ["bookshelf", "bookcase", "library shelf", "display shelf"] },
+    { question: "衣櫃", answer: "wardrobe", options: ["wardrobe", "closet", "armoire", "cabinet"] },
+    { question: "抽屜櫃", answer: "chest of drawers", options: ["chest of drawers","dresser","bureau","cabinet"] },
+    { question: "電視櫃", answer: "TV stand", options: ["TV stand","entertainment center","media console","AV cabinet"] },
+    { question: "咖啡桌", answer: "coffee table", options: ["coffee table","end table","side table","accent table"] },
+    { question: "邊桌", answer: "side table", options: ["side table","end table","accent table","console table"] },
+    { question: "餐椅", answer: "dining chair", options: ["dining chair","kitchen chair","bar stool","counter stool"] },
+    { question: "吧台椅", answer: "bar stool", options: ["bar stool","counter stool","kitchen stool","pub stool"] },
+    { question: "搖椅", answer: "rocking chair", options: ["rocking chair","glider chair","recliner","swivel chair"] },
+    { question: "搖椅", answer: "recliner", options: ["recliner","rocking chair","glider chair","swivel chair"] },
+    { question: "轉椅", answer: "swivel chair", options: ["swivel chair","rolling chair","task chair","office chair"] },
+    { question: "辦公椅", answer: "office chair", options: ["office chair","task chair","executive chair","manager chair"] },
+    { question: "躺椅", answer: "lounge chair", options: ["lounge chair","chaise lounge","sun lounger","deck chair"] },
+    { question: "沙發床", answer: "sofa bed", options: ["sofa bed","futon","daybed","pull-out couch"] },
+    { question: "折疊椅", answer: "folding chair", options: ["folding chair","camping chair","portable chair","beach chair"] },
+    { question: "高腳椅", answer: "high stool", options: ["high stool","bar stool","counter stool","kitchen stool"] },
+    { question: "餐桌椅", answer: "dining set", options: ["dining set","kitchen set","breakfast nook set","pub set"] },
+    { question: "書桌椅", answer: "desk chair", options: ["desk chair","office chair","task chair","executive chair"] },
+    { question: "電腦椅", answer: "computer chair", options: ["computer chair","gaming chair","ergonomic chair","office chair"] },
+
+];
+//colorPool 紅色 藍色 紫色 深綠色，橘色
+// const colorPool = ["red", "blue", "", "#32CD32", "#9370DB", "#00CED1"];
+const colorPool = ["#FF6347", "#4682B4", "#9370DB", "green", "red","blue"]; // 紅色, 藍色, 紫色, 深綠色
+const coinDisplay = document.getElementById("coinDisplay");
+
+
+function playPronunciation(word, speed = 0.5) {
+  if (!('speechSynthesis' in window)) {
+    console.warn('此瀏覽器不支援語音合成');
+    return;
+  }
+
+  const utterance = new SpeechSynthesisUtterance(word);
+  utterance.lang = 'en-US';
+  utterance.rate = speed;  // 發音速度
+
+  speechSynthesis.speak(utterance);
+}
+
+const speedRange = document.getElementById('speedRange');
+const speedValue = document.getElementById('speedValue');
+
+speedRange.addEventListener('input', () => {
+  speedValue.textContent = speedRange.value;
+});
+
+
+let blocks = [];
+let ball = {
+  x: 200, y: 550, radius: 10,
+  vx: 0, vy: 0,
+  dragging: false,
+  startX: 0, startY: 0,
+  showLine: false
+};
+
+// 新增全局訊息變數
+let message = "";
+let messageTimeout = null;
+
+function showMessage(text) {
+  message = text;
+  if (messageTimeout) clearTimeout(messageTimeout);
+  messageTimeout = setTimeout(() => {
+    message = "";
+  }, 5000);
+}
+
+let coins = 0;
+
+// 儲存與更新顯示金幣
+function saveCoins() {
+  localStorage.setItem("coins", coins);
+  coinDisplay.innerText = coins;
+}
+
+function addCoins(amount) {
+  coins += amount;
+  if (coins < 0) coins = 0;
+  saveCoins();
+}
+
+// 更新遊戲邏輯時，依答題結果更新金幣
+function onHitBlock(isCorrect,answer) {
+  if (isCorrect) {
+    addCoins(10);
+    
+    showMessage("✅" + answer);
+  } else {
+    addCoins(-10);
+    showMessage("❌");
+  }
+}
+
+// 畫面繪製中加入訊息繪製
+function drawMessage() {
+  if (!message) return;
+  ctx.save();
+  ctx.font = "bold 48px sans-serif";
+ctx.fillStyle = message.includes("✅") ? "#0f0" : "#f00";
+
+  ctx.shadowColor = "#000";
+  ctx.shadowBlur = 8;
+  ctx.textAlign = "center";
+  ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+  ctx.restore();
+}
+// 初始化遊戲狀態
+let currentQ = null;
+let lastQ = null;
+function loadQuestion() {
+      do {
+    currentQ = Math.floor(Math.random() * questionSet.length);
+  } while (currentQ === lastQ && questionSet.length > 1);
+  lastQ = currentQ;
+  // 隨機取得一個題目 index
+  currentQ = Math.floor(Math.random() * questionSet.length);
+  const q = questionSet[currentQ];
+  
+  questionTitle.innerText = `請找出：「${q.question}」 的英文`;
+    const positions = [
+    { x: 0,  y: 20  }, // 左上
+    { x: 180, y: -100 }, // 右上
+    { x: 0,  y: 180 }, // 左下
+    { x: 180, y: 300 }  // 右下
+  ];
+  blocks = [];
+  let shuffled = [...q.options].sort(() => Math.random() - 0.5);
+  for (let i = 0; i < 4; i++) {
+    blocks.push({
+      word: shuffled[i],
+      x: positions[i].x - 20,
+      y: positions[i].y + 200,
+      w: 130,
+      h: 40,
+      hit: false,
+      opacity: 1,
+      exploding: false,
+      color: colorPool[Math.floor(Math.random() * colorPool.length)]
+    });
+  }
+  resetBall();
+}
+function resetBall() {
+  ball.x = 200;
+  ball.y = 300;
+  ball.vx = 0;
+  ball.vy = 0;
+}
+
+function drawBall() {
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff";
+  ctx.fill();
+
+  // 拖曳預覽線
+  if (ball.dragging && ball.showLine) {
+    ctx.beginPath();
+    ctx.moveTo(ball.x, ball.y);
+    ctx.lineTo(ball.startX, ball.startY);
+    ctx.strokeStyle = "rgba(255,255,255,0.5)";
+    ctx.setLineDash([5, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+function drawBlocks() {
+  blocks.forEach(block => {
+    if (block.hit && block.opacity <= 0) return;
+    if (block.exploding) {
+      block.opacity -= 0.05;
+      if (block.opacity < 0) block.opacity = 0;
+    }
+    ctx.save();
+    ctx.globalAlpha = block.opacity;
+    ctx.fillStyle = block.color;
+    ctx.shadowColor = "rgba(0,0,0,0.7)";
+    ctx.shadowBlur = 6;
+    ctx.fillRect(block.x +50, block.y, block.w, block.h);
+    ctx.fillStyle = "#fff";
+    ctx.shadowColor = "#000";
+    ctx.shadowBlur = 3;
+    ctx.font = "bold 18px sans-serif";
+    ctx.fillText(block.word, block.x + block.w / 2, block.y + block.h / 2 + 6);
+    ctx.restore();
+  });
+}
+
+
+function updateBall() {
+  if (!ball.dragging && (ball.vx !== 0 || ball.vy !== 0)) {
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+    ball.vy += 0.2; // gravity
+  }
+
+  if (ball.x <= 0 || ball.x >= canvas.width) ball.vx *= -1;
+  if (ball.y <= 0 || ball.y >= canvas.height) resetBall();
+
+  blocks.forEach(block => {
+    if (block.hit) return;
+    if (ball.x > block.x && ball.x < block.x + block.w &&
+        ball.y > block.y && ball.y < block.y + block.h) {
+      block.hit = true;
+      block.exploding = true;
+
+      if (block.word === questionSet[currentQ].answer) {
+            const answer = questionSet[currentQ].answer
+         const speed = parseFloat(speedRange.value) || 0.5;
+        playPronunciation(answer, speed);
+        onHitBlock(true,answer);
+        //答對球回到中心
+        resetBall()
+        setTimeout(() => {
+          loadQuestion();
+        }, 5000);
+      } else {
+            //球回到中心
+        resetBall()
+
+        onHitBlock(false);
+        setTimeout(() => {
+         
+        }, 2000);
+      }
+    }
+  });
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBall();
+  drawBlocks();
+  updateBall();
+  drawMessage();
+  requestAnimationFrame(draw);
+}
+
+// 拖曳控制
+function startDrag(x, y) {
+  const dx = x - ball.x;
+  const dy = y - ball.y;
+  if (Math.sqrt(dx * dx + dy * dy) < ball.radius + 10) {
+    ball.dragging = true;
+    ball.startX = x;
+    ball.startY = y;
+    ball.showLine = true;
+  }
+}
+function moveDrag(x, y) {
+  if (ball.dragging) {
+    ball.x = x;
+    ball.y = y;
+  }
+}
+function endDrag(x, y) {
+  if (ball.dragging) {
+    const dx = ball.startX - x;
+    const dy = ball.startY - y;
+    ball.vx = dx * 0.2;
+    ball.vy = dy * 0.2;
+    ball.dragging = false;
+    ball.showLine = false;
+  }
+}
+
+// 滑鼠與觸控支援
+canvas.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  startDrag(e.clientX - rect.left, e.clientY - rect.top);
+});
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  moveDrag(e.clientX - rect.left, e.clientY - rect.top);
+});
+canvas.addEventListener('mouseup', e => {
+  const rect = canvas.getBoundingClientRect();
+  endDrag(e.clientX - rect.left, e.clientY - rect.top);
+});
+canvas.addEventListener('touchstart', e => {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches[0];
+  startDrag(touch.clientX - rect.left, touch.clientY - rect.top);
+});
+canvas.addEventListener('touchmove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches[0];
+  moveDrag(touch.clientX - rect.left, touch.clientY - rect.top);
+});
+canvas.addEventListener('touchend', e => {
+  endDrag(ball.x, ball.y);
+});
+
+loadQuestion();
+draw();
+
+window.onload = function() {
+  coins = parseInt(localStorage.getItem('coins')) || 0; // 預設100金幣
+  saveCoins();
+  loadQuestion();
+  draw();
+};
+</script>
+</body>
+</html>

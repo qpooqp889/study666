@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>儲值中心</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: #f0f4ff;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      text-align: center;
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      max-width: 480px;
+      width: 100%;
+      position: relative;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #4285f4;
+    }
+
+    #coin-balance {
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+
+    .purchase-options button {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      background: #4285f4;
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .purchase-options button:hover {
+      background: #3367d6;
+    }
+
+    .premium {
+      animation: shine 1.5s infinite;
+    }
+
+    @keyframes shine {
+      0% { box-shadow: 0 0 10px gold; }
+      50% { box-shadow: 0 0 30px gold, 0 0 40px orange; }
+      100% { box-shadow: 0 0 10px gold; }
+    }
+
+    #coin-animation-container {
+      position: absolute;
+      top: 50px;
+      left: 0;
+      right: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .coin {
+      font-size: 24px;
+      color: gold;
+      animation: floatUp 1.2s ease-out forwards;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0.9;
+      text-shadow: 1px 1px 2px #000;
+    }
+
+    @keyframes floatUp {
+      0% {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+      100% {
+        transform: translateX(-50%) translateY(-80px);
+        opacity: 0;
+      }
+    }
+
+    @keyframes drop {
+      0% { transform: translateY(-50px); opacity: 1; }
+      100% { transform: translateY(120px); opacity: 0; }
+    }
+
+    #loading {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.7);
+      z-index: 99;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      border-radius: 20px;
+    }
+
+    #success-popup {
+      display: none;
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      color: #28a745;
+      font-weight: bold;
+      z-index: 20;
+      animation: pop 1s ease-out;
+    }
+
+    @keyframes pop {
+      0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+    }
+
+    #history {
+      margin-top: 30px;
+      text-align: left;
+      max-height: 180px;
+      overflow-y: auto;
+      border-top: 1px solid #ccc;
+      padding-top: 10px;
+      font-size: 14px;
+    }
+
+    .history-item {
+      margin-bottom: 6px;
+    }
+    .coin-img {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  animation: drop-img 1.5s ease-out forwards;
+  pointer-events: none;
+  z-index: 100;
+}
+
+@keyframes drop-img {
+  0% { transform: translateY(-60px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(140px) rotate(360deg); opacity: 0; }
+}
+
+  </style>
+</head>
+<body>
+              <a href="../index.html" style="position:absolute;left:10px;top:10px;font-size:24px;text-decoration:none;background:#eee;padding:6px 18px;border-radius:8px;color:#222;box-shadow:0 2px 6px #ccc;">← 返回選單</a>
+
+  <div class="container">
+    <h1>儲值中心</h1>
+    <div id="coin-balance">金幣餘額: 0</div>
+    <div class="purchase-options">
+      <button data-price="30" data-coins="60">30 台幣 - 60 金幣</button>
+      <button data-price="150" data-coins="310">150 台幣 - 310 金幣</button>
+      <button data-price="499" data-coins="1050">499 台幣 - 1050 金幣</button>
+      <button data-price="990" data-coins="2200">990 台幣 - 2200 金幣</button>
+      <button data-price="1990" data-coins="4500">1990 台幣 - 4500 金幣</button>
+      <button class="premium" data-price="2990" data-coins="7100">2990 台幣 - 7100 金幣 (含贈送)</button>
+    </div>
+    <div id="coin-animation-container"></div>
+    <div id="success-popup">儲值成功！</div>
+    <!-- <div id="loading">處理中...</div> -->
+    <div id="history">
+      <strong>儲值紀錄：</strong>
+      <div id="history-list"></div>
+    </div>
+    <audio id="success-sound" src="./y2405.mp3"></audio>
+  </div>
+
+  <script>
+    let coins = parseInt(localStorage.getItem("coins")) || 0;
+    let coinDisplay = document.getElementById("coin-balance");
+    let historyList = document.getElementById("history-list");
+
+    function updateBalance() {
+      coinDisplay.textContent = `金幣餘額: ${coins}`;
+      localStorage.setItem("coins", coins);
+    }
+
+    function showCoinAnimation(amount) {
+      const container = document.getElementById("coin-animation-container");
+      for (let i = 0; i < 6; i++) {
+        const coin = document.createElement("div");
+        coin.className = "coin";
+        coin.textContent = `+${amount}`;
+        coin.style.left = `${40 + Math.random() * 20}%`;
+        coin.style.animationDuration = `${0.8 + Math.random() * 0.6}s`;
+        container.appendChild(coin);
+        setTimeout(() => coin.remove(), 1500);
+      }
+    }
+
+    function dropCoins(count = 10) {
+ const container = document.getElementById("coin-animation-container");
+  for (let i = 0; i < count; i++) {
+    const img = document.createElement("img");
+    img.src = "./coin.png"; // 替換為你的金幣圖片路徑
+    img.className = "coin-img";
+    img.style.left = `${Math.random() * 100}%`;
+    img.style.top = `-${Math.random() * 60}px`;
+    img.style.animationDelay = `${i * 0.1}s`;
+    container.appendChild(img);
+    setTimeout(() => img.remove(), 1800);
+  }
+    }
+
+    function showSuccessPopup() {
+      const popup = document.getElementById("success-popup");
+      popup.style.display = "block";
+      popup.style.animation = "pop 1s ease-out";
+      setTimeout(() => popup.style.display = "none", 1000);
+    }
+
+    function playSuccessSound() {
+      document.getElementById("success-sound").play();
+    }
+
+    function addToHistory(price, coinAmount) {
+      const now = new Date().toLocaleString();
+      const record = { time: now, price: price, coins: coinAmount };
+      let history = JSON.parse(localStorage.getItem("topupHistory") || "[]");
+      history.unshift(record);
+      localStorage.setItem("topupHistory", JSON.stringify(history));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      historyList.innerHTML = "";
+      let history = JSON.parse(localStorage.getItem("topupHistory") || "[]");
+      history.slice(0, 10).forEach(item => {
+        const div = document.createElement("div");
+        div.className = "history-item";
+        div.textContent = `${item.time}：儲值 ${item.price} 元，獲得 ${item.coins} 金幣`;
+        historyList.appendChild(div);
+      });
+    }
+
+    function simulateTopup(price, coinAmount) {
+      // document.getElementById("loading").style.display = "flex";
+      setTimeout(() => {
+        coins += coinAmount;
+        updateBalance();
+        showCoinAnimation(coinAmount);
+        if (price >= 990) dropCoins(); // 990元以上灑金幣
+        showSuccessPopup();
+        playSuccessSound();
+        addToHistory(price, coinAmount);
+        // document.getElementById("loading").style.display = "none";
+      }, 3000); // 模擬3秒處理時間
+    }
+
+    document.querySelectorAll(".purchase-options button").forEach(button => {
+      button.addEventListener("click", () => {
+        const coinAmount = parseInt(button.dataset.coins);
+        const price = parseInt(button.dataset.price);
+        if (confirm(`確定要花 ${price} 元購買 ${coinAmount} 金幣嗎？`)) {
+          simulateTopup(price, coinAmount);
+        }
+      });
+    });
+
+    updateBalance();
+    renderHistory();
+  </script>
+</body>
+</html>

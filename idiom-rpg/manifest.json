@@ -1,0 +1,21 @@
+{
+  "name": "成語勇者 RPG",
+  "short_name": "成語RPG",
+  "description": "一款學成語、打怪升級的教育 RPG 遊戲！",
+  "start_url": "idiom-rpg.html",
+  "display": "standalone",
+  "background_color": "#fffef7",
+  "theme_color": "#ffd966",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
